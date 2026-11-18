@@ -16,7 +16,6 @@ private struct AboutLink: Identifiable {
     static let all = [
         AboutLink(label: "Website", symbol: "globe", url: "https://clawd.kbr.sh"),
         AboutLink(label: "Source", symbol: "chevron.left.forwardslash.chevron.right", url: "https://github.com/program247365/clawd"),
-        AboutLink(label: "Company", symbol: "building.2", url: "https://interweblabs.com"),
         AboutLink(label: "Kevin B. Ridgway", symbol: "person", url: "https://kbr.sh?source=clawd-app"),
     ]
 }
