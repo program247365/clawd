@@ -9,17 +9,15 @@ Clawd is a small menubar app that puts Clawd on your Mac. He walks along the bot
 
 Clawd is Anthropic's character. This is an unofficial fan project.
 
-<p align="center"><img src="docs/clawd-desktop.png" width="560" alt="Clawd walking along the bottom of a Mac desktop"></p>
-
 See him walk in a browser at [clawd.kbr.sh](https://clawd.kbr.sh).
 
 ## Install
 
 | Platform | Install |
 | --- | --- |
-| macOS 14+ (Apple silicon or Intel) | `brew install --cask program247365/tap/clawd` |
+| macOS 14+ (Apple silicon or Intel) | Download [Clawd.dmg](https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg), open it, and drag Clawd to Applications |
 
-The [DMG](https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg) is available as a direct install. Windows and Linux are planned.
+A Homebrew cask (`brew install --cask program247365/tap/clawd`) is on its way. Windows and Linux are planned.
 
 ## Quick start
 
