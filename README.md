@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/program247365/clawd?style=flat-square)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/Homebrew-program247365%2Ftap-FBB040?style=flat-square&logo=homebrew&logoColor=white)](https://github.com/program247365/homebrew-tap)
 
-Clawd is a small menubar app that puts Clawd on your Mac. He walks along the bottom of your screen, stops to fish, juggle, or water a plant, and now and then teleports somewhere else to do it there. Clicks pass straight through him.
+Clawd is a small menubar app that puts Clawd on your Mac. He walks along the bottom of your screen and stops to fish, juggle, or water a plant. Let him roam and he'll pop up anywhere on the screen to do it there. Clicks pass straight through him.
 
 Clawd is Anthropic's character. This is an unofficial fan project.
 
@@ -25,13 +25,14 @@ A Homebrew cask (`brew install --cask program247365/tap/clawd`) is on its way. W
 open -a Clawd
 ```
 
-Clawd appears at the bottom of the screen and his icon appears in the menubar. From the menu you can hide him, pick Small, Medium, or Large, and turn on Launch at Login.
+Clawd appears at the bottom of the screen and his icon appears in the menubar. From the menu you can hide him, pick Small, Medium, or Large, turn on Launch at Login, and open Settings to let him roam.
 
 ## What Clawd does
 
 - Walks along the bottom edge of the screen, on top of the Dock when it is there.
 - Stops to perform one of his acts, and plays every act once before repeating any.
-- About one time in four, pops out and reappears at a random spot to perform there.
+- Drops in from the top of the screen under a spotlight when the app launches.
+- Stays at the bottom by default. Choose "Let Clawd roam!" in Settings and about one time in four he pops out and reappears somewhere else to perform.
 - Stays above your windows but never takes a click, a scroll, or focus.
 - Stays out of fullscreen apps, the Dock, and Cmd-Tab.
 

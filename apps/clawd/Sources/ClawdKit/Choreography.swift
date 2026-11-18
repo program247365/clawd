@@ -45,8 +45,9 @@ public enum Choreography {
         frameCount < shortActFrames ? 2 : 1
     }
 
-    public static func shouldTeleport<R: RandomNumberGenerator>(using rng: inout R) -> Bool {
-        Double.random(in: 0..<1, using: &rng) < teleportChance
+    /// A Clawd kept at the bottom never teleports; one allowed to roam does about one time in four.
+    public static func shouldTeleport<R: RandomNumberGenerator>(roams: Bool, using rng: inout R) -> Bool {
+        roams && Double.random(in: 0..<1, using: &rng) < teleportChance
     }
 
     /// Where to walk next: at least a third of the way across, alternating direction when there is room.

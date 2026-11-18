@@ -9,6 +9,13 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(Settings(defaults: defaults).size, .large)
     }
 
+    func testHeStaysAtTheBottomUnlessToldHeMayRoam() {
+        let defaults = UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!
+        XCTAssertFalse(Settings(defaults: defaults).roams)
+        Settings(defaults: defaults).roams = true
+        XCTAssertTrue(Settings(defaults: defaults).roams)
+    }
+
     func testUnknownStoredSizeFallsBackToMedium() {
         let defaults = UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!
         defaults.set("gigantic", forKey: "size")

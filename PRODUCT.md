@@ -16,7 +16,7 @@ Claude Code users: developers who already know Clawd from Claude Code and Anthro
 
 ## Product Purpose
 
-Clawd is a free, open-source Mac menubar app that puts Clawd on the desktop. He walks along the bottom of the screen, stops to perform one of his acts, and sometimes teleports to perform somewhere else. clawd.kbr.sh is where people install it. Success for the site is an install: a download of the DMG or a `brew install`.
+Clawd is a free, open-source Mac menubar app that puts Clawd on the desktop. He walks along the bottom of the screen and stops to perform one of his acts. With "Let Clawd roam!" turned on in Settings, he sometimes teleports to perform somewhere else; by default he stays at the bottom. clawd.kbr.sh is where people install it. Success for the site is an install: a download of the DMG or a `brew install`.
 
 ## Positioning
 
@@ -25,7 +25,8 @@ The real Clawd, with his original animations, walking on your actual desktop rat
 ## Operating Context
 
 - Visitors already know who Clawd is; the page does not need to introduce him.
-- The app lives in the menubar: Hide/Show, Small/Medium/Large, Launch at Login, About, Quit.
+- The app lives in the menubar: Hide/Show, Small/Medium/Large, Launch at Login, Settings, About, Quit.
+- On launch he drops in from the top of the screen under a spotlight, lands, waves, and then starts walking.
 - Install is by Homebrew cask (`brew install --cask program247365/tap/clawd`) or a notarized DMG.
 - The site also runs the same walk-and-perform loop live in the page.
 

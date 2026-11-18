@@ -96,9 +96,15 @@ final class ChoreographyTests: XCTestCase {
         XCTAssertTrue(drop.landed)
     }
 
-    func testTeleportChanceIsAboutOneInFour() {
+    func testARoamingClawdTeleportsAboutOneTimeInFour() {
         var rng = Seeded(11)
-        let hits = (0..<4000).filter { _ in Choreography.shouldTeleport(using: &rng) }.count
+        let hits = (0..<4000).filter { _ in Choreography.shouldTeleport(roams: true, using: &rng) }.count
         XCTAssertEqual(Double(hits) / 4000, 0.25, accuracy: 0.03)
+    }
+
+    func testAClawdKeptAtTheBottomNeverTeleports() {
+        var rng = Seeded(11)
+        let hits = (0..<4000).filter { _ in Choreography.shouldTeleport(roams: false, using: &rng) }.count
+        XCTAssertEqual(hits, 0)
     }
 }

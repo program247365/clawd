@@ -148,7 +148,8 @@ public final class Performer {
 
             let walksFirst = mustWalkNext
             mustWalkNext = false
-            if !walksFirst, Choreography.shouldTeleport(using: &rng) {
+            // Read each time round, so changing the setting takes effect on his very next move.
+            if !walksFirst, Choreography.shouldTeleport(roams: settings.roams, using: &rng) {
                 await window.pop(visible: false)
                 if Task.isCancelled { return }
                 window.origin = stage.teleportOrigin(using: &rng)

@@ -8,6 +8,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let performer: Performer
     private let settings: Settings
     private let about = AboutWindowController()
+    private let settingsWindow = SettingsWindowController()
     private let visibilityItem = NSMenuItem(title: "", action: #selector(toggleVisibility), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     private var sizeItems: [ClawdSize: NSMenuItem] = [:]
@@ -42,6 +43,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(loginItem)
         menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "About Clawd (v\(AppInfo.version))", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit Clawd", action: #selector(quit), keyEquivalent: "q"))
         for item in menu.items + sizeMenu.items where item.action != nil { item.target = self }
@@ -76,6 +78,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func showAbout() { about.show() }
+
+    @objc private func showSettings() { settingsWindow.show() }
 
     @objc private func quit() { NSApp.terminate(nil) }
 }
