@@ -38,6 +38,11 @@ public struct Stage: Equatable {
         CGPoint(x: visibleFrame.minX + min(max(offset, 0), maxX), y: floorY)
     }
 
+    /// Where his launch entrance begins: just above the usable area, over the same spot on the floor.
+    public func entranceOrigin(x offset: CGFloat) -> CGPoint {
+        CGPoint(x: floorOrigin(x: offset).x, y: visibleFrame.maxY)
+    }
+
     /// A random spot where he is fully on screen.
     public func teleportOrigin<R: RandomNumberGenerator>(using rng: inout R) -> CGPoint {
         let roomX = visibleFrame.width - size.width

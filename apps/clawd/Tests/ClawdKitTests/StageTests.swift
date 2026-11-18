@@ -20,6 +20,14 @@ final class StageTests: XCTestCase {
         XCTAssertEqual(stage.floorOrigin(x: 0).x, 80)
     }
 
+    func testEntranceStartsJustAboveTheUsableAreaOverTheSameSpotOnTheFloor() {
+        let frame = CGRect(x: 80, y: 70, width: 1432, height: 870)
+        let stage = Stage(visibleFrame: frame, size: ClawdSize.medium.size)
+        let top = stage.entranceOrigin(x: 300)
+        XCTAssertEqual(top.x, stage.floorOrigin(x: 300).x)
+        XCTAssertEqual(top.y, frame.maxY)
+    }
+
     func testTeleportKeepsHimFullyInsideTheVisibleFrame() {
         let frame = CGRect(x: 0, y: 70, width: 1512, height: 870)
         let stage = Stage(visibleFrame: frame, size: ClawdSize.large.size)

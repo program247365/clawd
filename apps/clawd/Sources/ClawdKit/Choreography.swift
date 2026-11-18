@@ -31,6 +31,16 @@ public enum Choreography {
     /// The step cycle inside the walking animation; the frames around it are a lean-in and a stand.
     public static let walkCycle: ClosedRange<CGFloat> = 5...24
 
+    /// How fast he falls on his entrance, in points per second squared: about 0.9s from the top of a laptop screen.
+    public static let gravity: CGFloat = 2400
+
+    /// Where a fall from `top` toward `floor` has got to after `elapsed` seconds (y is up, so top > floor).
+    public static func drop(from top: CGFloat, to floor: CGFloat, elapsed: TimeInterval) -> (y: CGFloat, landed: Bool) {
+        let seconds = CGFloat(max(elapsed, 0))
+        let y = top - 0.5 * gravity * seconds * seconds
+        return y <= floor ? (floor, true) : (y, false)
+    }
+
     public static func plays(forFrameCount frameCount: Int) -> Int {
         frameCount < shortActFrames ? 2 : 1
     }

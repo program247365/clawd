@@ -12,7 +12,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let performer = Performer(catalog: catalog, window: window, settings: settings)
         self.performer = performer
         menu = MenuController(performer: performer, settings: settings)
-        performer.start()
+        performer.start(entrance: true)
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(screenChanged),

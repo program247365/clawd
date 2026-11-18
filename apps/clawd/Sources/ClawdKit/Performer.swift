@@ -64,10 +64,16 @@ public final class Performer {
     public var isRunning: Bool { loop != nil }
 
     /// Places him on the floor and begins the routine. Does nothing if already running.
-    public func start() {
+    /// With `entrance`, he first drops in from the top of the screen, waving. That is for launch only.
+    public func start(entrance: Bool = false) {
         guard loop == nil, let stage = placeOnFloor() else { return }
+        if entrance {
+            // Above the screen before the window appears, so he is never seen standing on the floor first.
+            offset = stage.maxX / 2
+            window.origin = stage.entranceOrigin(x: offset)
+        }
         window.show()
-        loop = Task { [weak self] in await self?.run(on: stage) }
+        loop = Task { [weak self] in await self?.run(on: stage, entrance: entrance) }
     }
 
     public func stop() {
@@ -102,8 +108,13 @@ public final class Performer {
         return stage
     }
 
-    private func run(on stage: Stage) async {
+    private func run(on stage: Stage, entrance: Bool) async {
         guard let walking = catalog.load("walking") else { return }
+        if entrance {
+            await dropIn(on: stage)
+            if Task.isCancelled { return }
+        }
+        window.origin = stage.floorOrigin(x: offset)
         window.pose(walking, frame: Self.standingFrame)
 
         while !Task.isCancelled {
@@ -150,6 +161,31 @@ public final class Performer {
             if Task.isCancelled { return }
         }
     }
+
+    /// The launch entrance: he falls from above the screen to the floor, waving, and waves a little longer.
+    private func dropIn(on stage: Stage) async {
+        guard let waving = catalog.load("waving") else { return }
+        let top = stage.entranceOrigin(x: offset)
+        var falling: TimeInterval = 0
+        window.origin = top
+        window.loop(waving)
+        await ticker.run(on: window) { [weak self] elapsed in
+            guard let self else { return true }
+            // Sum honored ticks rather than reading a clock, so a stalled frame cannot skip the fall.
+            falling += min(max(elapsed, 0), Choreography.maxStep)
+            let drop = Choreography.drop(from: top.y, to: stage.floorY, elapsed: falling)
+            window.origin = CGPoint(x: top.x, y: drop.y)
+            return drop.landed
+        }
+        if Task.isCancelled { return }
+        for _ in 0..<Self.wavesAfterLanding {
+            await window.play(waving)
+            if Task.isCancelled { return }
+        }
+    }
+
+    /// Waving is about a second and a half; two more after he lands is "a few seconds".
+    private static let wavesAfterLanding = 2
 
     private func perform(_ act: ClawdAnimation) async {
         for _ in 0..<Choreography.plays(forFrameCount: act.frameCount) {

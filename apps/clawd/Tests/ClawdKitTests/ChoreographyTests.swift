@@ -68,6 +68,34 @@ final class ChoreographyTests: XCTestCase {
         XCTAssertTrue(left.arrived)
     }
 
+    func testDropStartsAtTheTop() {
+        let drop = Choreography.drop(from: 900, to: 0, elapsed: 0)
+        XCTAssertEqual(drop.y, 900)
+        XCTAssertFalse(drop.landed)
+    }
+
+    func testDropAcceleratesLikeAFall() {
+        let early = Choreography.drop(from: 900, to: 0, elapsed: 0.2)
+        let later = Choreography.drop(from: 900, to: 0, elapsed: 0.4)
+        XCTAssertEqual(early.y, 900 - 0.5 * Choreography.gravity * 0.04, accuracy: 0.001)
+        // Falls three times as far in the second 0.2s as in the first.
+        XCTAssertEqual(early.y - later.y, 3 * (900 - early.y), accuracy: 0.001)
+        XCTAssertFalse(later.landed)
+    }
+
+    func testDropLandsExactlyOnTheFloorAndStaysThere() {
+        let landing = Choreography.drop(from: 900, to: 12, elapsed: 5)
+        XCTAssertEqual(landing.y, 12)
+        XCTAssertTrue(landing.landed)
+        XCTAssertEqual(Choreography.drop(from: 900, to: 12, elapsed: 3600).y, 12)
+    }
+
+    func testDropFromBelowTheFloorLandsAtOnce() {
+        let drop = Choreography.drop(from: 5, to: 40, elapsed: 0)
+        XCTAssertEqual(drop.y, 40)
+        XCTAssertTrue(drop.landed)
+    }
+
     func testTeleportChanceIsAboutOneInFour() {
         var rng = Seeded(11)
         let hits = (0..<4000).filter { _ in Choreography.shouldTeleport(using: &rng) }.count
