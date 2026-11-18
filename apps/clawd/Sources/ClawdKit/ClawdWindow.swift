@@ -89,13 +89,6 @@ public final class ClawdWindow {
         startFrames(of: walking, from: cycle.lowerBound, through: cycle.upperBound, loop: true)
     }
 
-    /// Loops a whole animation until something else is shown.
-    public func loop(_ animation: ClawdAnimation) {
-        startFrames(
-            of: animation, from: animation.animation.startFrame,
-            through: animation.animation.endFrame - 1, loop: true)
-    }
-
     /// Shows one frame without playing.
     public func pose(_ animation: ClawdAnimation, frame: CGFloat) {
         stopAnimation()
