@@ -53,6 +53,16 @@ public final class ClawdWindow {
 
     public var isVisible: Bool { panel.isVisible }
 
+    /// The window server's number for his window.
+    public var windowNumber: Int { panel.windowNumber }
+
+    /// Puts his window back among the ordinary desktop windows after it has been somewhere else.
+    public func rejoinDesktop() {
+        guard panel.isVisible else { return }
+        panel.orderOut(nil)
+        panel.orderFrontRegardless()
+    }
+
     /// 1 when he is fully drawn, 0 when a pop has faded him out.
     public var opacity: CGFloat { animationView.alphaValue }
 

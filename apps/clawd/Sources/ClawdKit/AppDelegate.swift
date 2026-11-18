@@ -4,6 +4,7 @@ import AppKit
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var performer: Performer?
     private var menu: MenuController?
+    private var lockScreenVisitor: LockScreenVisitor?
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         let settings = Settings()
@@ -13,6 +14,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         self.performer = performer
         menu = MenuController(performer: performer, settings: settings)
         performer.start(entrance: true)
+        lockScreenVisitor = LockScreenVisitor(window: window, settings: settings)
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(screenChanged),

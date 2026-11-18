@@ -16,6 +16,13 @@ final class SettingsTests: XCTestCase {
         XCTAssertTrue(Settings(defaults: defaults).roams)
     }
 
+    func testHeOnlyVisitsTheLockScreenWhenInvited() {
+        let defaults = UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!
+        XCTAssertFalse(Settings(defaults: defaults).visitsLockScreen)
+        Settings(defaults: defaults).visitsLockScreen = true
+        XCTAssertTrue(Settings(defaults: defaults).visitsLockScreen)
+    }
+
     func testUnknownStoredSizeFallsBackToMedium() {
         let defaults = UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!
         defaults.set("gigantic", forKey: "size")

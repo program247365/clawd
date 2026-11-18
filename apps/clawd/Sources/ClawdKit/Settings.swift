@@ -16,6 +16,14 @@ public final class Settings {
     /// The Settings window binds to this key directly.
     public static let roamsKey = "roams"
 
+    /// Whether he follows you onto the lock screen. Off by default.
+    public var visitsLockScreen: Bool {
+        get { defaults.bool(forKey: Self.visitsLockScreenKey) }
+        set { defaults.set(newValue, forKey: Self.visitsLockScreenKey) }
+    }
+
+    public static let visitsLockScreenKey = "visitsLockScreen"
+
     public var size: ClawdSize {
         get { defaults.string(forKey: "size").flatMap(ClawdSize.init(rawValue:)) ?? .medium }
         set { defaults.set(newValue.rawValue, forKey: "size") }
