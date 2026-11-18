@@ -55,19 +55,32 @@ public final class Performer {
     private var facing: Facing = .right
     /// Exists only during the launch entrance.
     private var spotlight: SpotlightWindow?
+    /// Whether the user wants him shown. A loop may not exist yet, for example with no screen attached.
+    private var wantsVisible = false
+    /// After the entrance his first move is a walk from where he landed, never a teleport.
+    private var mustWalkNext = false
+    private let visibleFrame: () -> CGRect?
 
-    public init(catalog: AnimationCatalog, window: ClawdWindow, settings: Settings) {
+    /// `visibleFrame` is the usable area of the display he lives on, or nil when there is none.
+    /// By default that is the first screen, the one with the menubar.
+    public init(
+        catalog: AnimationCatalog, window: ClawdWindow, settings: Settings,
+        visibleFrame: @escaping () -> CGRect? = { NSScreen.screens.first?.visibleFrame }
+    ) {
         self.catalog = catalog
         self.window = window
         self.settings = settings
+        self.visibleFrame = visibleFrame
         queue = ActQueue(names: catalog.actNames)
     }
 
-    public var isRunning: Bool { loop != nil }
+    /// True from `start()` until `stop()`, whether or not there is a screen to show him on yet.
+    public var isRunning: Bool { wantsVisible }
 
     /// Places him on the floor and begins the routine. Does nothing if already running.
     /// With `entrance`, he first drops in from the top of the screen, waving. That is for launch only.
     public func start(entrance: Bool = false) {
+        wantsVisible = true
         guard loop == nil, let stage = placeOnFloor() else { return }
         if entrance {
             // Above the screen before the window appears, so he is never seen standing on the floor first.
@@ -79,15 +92,15 @@ public final class Performer {
     }
 
     public func stop() {
+        wantsVisible = false
         cancelLoop()
         window.hide()
     }
 
     /// Call when the screen layout or the size setting changes.
     public func refresh() {
-        let wasRunning = isRunning
         cancelLoop()
-        if wasRunning { start() } else { placeOnFloor() }
+        if wantsVisible { start() } else { placeOnFloor() }
     }
 
     private func cancelLoop() {
@@ -101,9 +114,8 @@ public final class Performer {
 
     @discardableResult
     private func placeOnFloor() -> Stage? {
-        // The first screen is the one with the menubar.
-        guard let screen = NSScreen.screens.first else { return nil }
-        let stage = Stage(visibleFrame: screen.visibleFrame, size: settings.size.size)
+        guard let visibleFrame = visibleFrame() else { return nil }
+        let stage = Stage(visibleFrame: visibleFrame, size: settings.size.size)
         self.stage = stage
         offset = min(max(offset, 0), stage.maxX)
         window.resize(to: stage.size)
@@ -114,12 +126,14 @@ public final class Performer {
 
     private func run(on stage: Stage, entrance: Bool) async {
         guard let walking = catalog.load("walking") else { return }
+        window.origin = entrance ? stage.entranceOrigin(x: offset) : stage.floorOrigin(x: offset)
         if entrance {
-            await dropIn(on: stage)
+            await dropIn(on: stage, thenStandAs: walking)
             if Task.isCancelled { return }
+            mustWalkNext = true
+        } else {
+            window.pose(walking, frame: Self.standingFrame)
         }
-        window.origin = stage.floorOrigin(x: offset)
-        window.pose(walking, frame: Self.standingFrame)
 
         while !Task.isCancelled {
             guard let name = queue.next(using: &rng) else { return }
@@ -132,7 +146,9 @@ public final class Performer {
             }
             if Task.isCancelled { return }
 
-            if Choreography.shouldTeleport(using: &rng) {
+            let walksFirst = mustWalkNext
+            mustWalkNext = false
+            if !walksFirst, Choreography.shouldTeleport(using: &rng) {
                 await window.pop(visible: false)
                 if Task.isCancelled { return }
                 window.origin = stage.teleportOrigin(using: &rng)
@@ -167,7 +183,8 @@ public final class Performer {
     }
 
     /// The launch entrance: he falls from above the screen to the floor, waving, and waves a little longer.
-    private func dropIn(on stage: Stage) async {
+    /// He then stands where he landed until the spotlight has faded.
+    private func dropIn(on stage: Stage, thenStandAs walking: ClawdAnimation) async {
         guard let waving = catalog.load("waving") else { return }
         let top = stage.entranceOrigin(x: offset)
         var falling: TimeInterval = 0
@@ -189,7 +206,8 @@ public final class Performer {
             await window.play(waving)
             if Task.isCancelled { return }
         }
-        spotlight.fadeOut()
+        window.pose(walking, frame: Self.standingFrame)
+        await spotlight.fadeOut()
         self.spotlight = nil
     }
 

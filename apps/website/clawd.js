@@ -80,6 +80,8 @@
     if (previous && previous !== p) { previous.el.classList.remove('on'); previous.anim.stop(); }
     current = p;
     p.anim.loop = loop;
+    // A player made at another size, or before a window resize, still has its old canvas.
+    p.anim.resize();
     const start = () => {
       if (current !== p) return;
       if (still !== null) p.anim.goToAndStop(still, true);
@@ -113,12 +115,15 @@
 
   // Anything that should cut the routine short bumps the generation.
   let generation = 0;
-  let wake = [];
+  let wake = null; // one promise shared by everything waiting on the current generation
   function interrupt() {
     generation++;
-    for (const resolve of wake.splice(0)) resolve();
+    if (wake) { const { resolve } = wake; wake = null; resolve(); }
   }
-  const interrupted = () => new Promise(resolve => wake.push(resolve));
+  function interrupted() {
+    if (!wake) { let resolve; const promise = new Promise(r => { resolve = r; }); wake = { promise, resolve }; }
+    return wake.promise;
+  }
   const pause = ms => Promise.race([new Promise(r => setTimeout(r, ms)), interrupted()]);
 
   function walkTo(walking, target) {
@@ -193,6 +198,8 @@
 
   // An act that fails to download is skipped rather than stalling him.
   const fetchAct = name => ready(name).catch(() => null);
+  // A slow download must not hold up a click or a size change: resolves null if interrupted first.
+  const unlessInterrupted = loading => Promise.race([loading, interrupted().then(() => null)]);
 
   let requested = null;
   async function run(walking) {
@@ -205,8 +212,9 @@
       if (requested) {
         const name = requested;
         requested = null;
-        const act = await fetchAct(name);
-        if (generation !== mine) continue;
+        const act = await unlessInterrupted(fetchAct(name));
+        // Interrupted while it downloaded: if a newer click replaced it, that one wins; otherwise ask again.
+        if (generation !== mine) { requested = requested || name; continue; }
         if (act) await perform(act);
         continue;
       }
@@ -214,7 +222,7 @@
       const name = nextAct();
       const loading = fetchAct(name); // downloads while he walks
       if (Math.random() < TELEPORT_CHANCE) {
-        const act = await loading;
+        const act = await unlessInterrupted(loading);
         if (generation !== mine) continue;
         if (!act) { await pause(1000); continue; }
         await pop(false);
@@ -238,7 +246,9 @@
       } else {
         await walkTo(walking, randomStop());
         if (generation !== mine) continue;
-        const act = await loading;
+        // If the act is still downloading he stands and waits, rather than walking on the spot.
+        show(walking, { still: STANDING_FRAME });
+        const act = await unlessInterrupted(loading);
         if (generation !== mine) continue;
         if (act) await perform(act);
       }
@@ -278,16 +288,16 @@
 
     new MutationObserver(() => {
       // Size or visibility changed: start the routine over from the floor at the new size.
-      requestAnimationFrame(() => {
-        resizeCurrent();
-        if (reducedMotion) stand(walking); else interrupt();
-      });
+      // Interrupting right away, not a frame later, keeps an act requested in the same click.
+      if (reducedMotion) requestAnimationFrame(() => stand(walking)); else interrupt();
     }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
 
     addEventListener('resize', () => {
       resizeCurrent();
       x = Math.min(x, maxX());
       place();
+      // His walk target was chosen for the old width.
+      if (!reducedMotion) interrupt();
     });
 
     if (reducedMotion) stand(walking); else run(walking);

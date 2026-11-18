@@ -53,6 +53,9 @@ public final class ClawdWindow {
 
     public var isVisible: Bool { panel.isVisible }
 
+    /// 1 when he is fully drawn, 0 when a pop has faded him out.
+    public var opacity: CGFloat { animationView.alphaValue }
+
     /// Keeps the bottom-left corner where it is.
     public func resize(to size: CGSize) {
         panel.setFrame(CGRect(origin: panel.frame.origin, size: size), display: true)
@@ -122,7 +125,7 @@ public final class ClawdWindow {
         frameTimer = timer
     }
 
-    /// A quick scale-and-fade. Always ends in the stated state, even if interrupted.
+    /// A quick scale-and-fade. If the routine is cancelled part-way, `show()` decides how he looks, not this.
     public func pop(visible: Bool) async {
         let duration = 0.15
         let target: CGFloat = visible ? 1 : 0.6
@@ -139,6 +142,8 @@ public final class ClawdWindow {
         }, completionHandler: nil)
         try? await Task.sleep(for: .seconds(duration))
         panel.contentView?.layer?.removeAnimation(forKey: "pop")
+        // A cancelled pop-out must not fade him after `show()` has already brought him back.
+        guard !Task.isCancelled else { return }
         animationView.alphaValue = visible ? 1 : 0
     }
 

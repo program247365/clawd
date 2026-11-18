@@ -73,13 +73,15 @@ public final class SpotlightWindow {
         }, completionHandler: nil)
     }
 
-    /// Fades the light out and removes the window.
-    public func fadeOut() {
-        let panel = panel
+    /// Fades the light out, removes the window, and returns once it is dark.
+    public func fadeOut() async {
+        let duration = 0.7
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.7
+            context.duration = duration
             panel.animator().alphaValue = 0
-        }, completionHandler: { panel.orderOut(nil) })
+        }, completionHandler: nil)
+        try? await Task.sleep(for: .seconds(duration))
+        panel.orderOut(nil)
     }
 
     /// Removes the window at once.
