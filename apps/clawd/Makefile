@@ -1,7 +1,7 @@
 SITE_ASSETS := ../website/assets
 ANIMATIONS := .build/animations
 
-.PHONY: animations check icons app run release
+.PHONY: animations check icons thumbs app run release
 
 animations:
 	rm -rf $(ANIMATIONS)
@@ -25,6 +25,11 @@ icons: animations
 	.build/debug/IconTool $(ANIMATIONS) .build/icons
 	iconutil -c icns .build/icons/AppIcon.iconset -o Resources/AppIcon.icns
 	cp .build/icons/MenuIcon.png .build/icons/MenuIcon@2x.png Resources/
+
+# Regenerates the website's act thumbnails (the middle frame of each act).
+thumbs: animations
+	swift build --product IconTool
+	.build/debug/IconTool --thumbs $(ANIMATIONS) ../website/assets/thumbs
 
 # A local, ad-hoc signed build for this machine's architecture.
 app: animations

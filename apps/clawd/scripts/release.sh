@@ -12,7 +12,8 @@ VERSION="$(tr -d '[:space:]' < VERSION)"
 APP="dist/Clawd.app"
 DMG="dist/Clawd.dmg"
 
-if ! xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1; then
+# SKIP_NOTARIZE=1 stops after signing and packaging: a way to test everything that does not involve Apple.
+if [[ -z "${SKIP_NOTARIZE:-}" ]] && ! xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1; then
     echo "Notary credentials not found in keychain profile '$PROFILE'. Run once:" >&2
     echo "  xcrun notarytool store-credentials $PROFILE --apple-id <your Apple ID> --team-id 2RGYH2QYUY" >&2
     exit 1
@@ -45,6 +46,11 @@ ln -s /Applications "$staging/Applications"
 rm -f "$DMG"
 hdiutil create -volname Clawd -srcfolder "$staging" -fs HFS+ -format UDZO -quiet "$DMG"
 sign "$DMG"
+
+if [[ -n "${SKIP_NOTARIZE:-}" ]]; then
+    echo "Signed but NOT notarized (SKIP_NOTARIZE): $DMG. Do not distribute this file."
+    exit 0
+fi
 
 echo "==> Notarizing (this uploads the DMG to Apple and waits)"
 submission="$(xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait --output-format json)"
