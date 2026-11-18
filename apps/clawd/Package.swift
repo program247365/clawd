@@ -10,6 +10,7 @@ let package = Package(
     targets: [
         .target(name: "ClawdKit", dependencies: [.product(name: "Lottie", package: "lottie-ios")]),
         .executableTarget(name: "Clawd", dependencies: ["ClawdKit"]),
+        .executableTarget(name: "IconTool", dependencies: ["ClawdKit"]),
         .testTarget(name: "ClawdKitTests", dependencies: ["ClawdKit"]),
     ]
 )
