@@ -54,6 +54,24 @@ make check
 
 `make check` rebuilds the site's animation bundle, builds the app, and runs the tests, including one that renders every animation.
 
+To run a local build of the app:
+
+```sh
+make -C apps/clawd run
+```
+
+That builds `apps/clawd/dist/Clawd.app` for your Mac with an ad-hoc signature. `make -C apps/clawd icons` regenerates the icons from the art.
+
+### Releasing
+
+`make -C apps/clawd release` builds a universal app, signs it with a Developer ID, notarizes it with Apple, and leaves `Clawd.dmg` in `apps/clawd/dist`. It uploads nothing else. It needs notary credentials in a keychain profile, stored once:
+
+```sh
+xcrun notarytool store-credentials clawd-notary --apple-id <your Apple ID> --team-id <your team ID>
+```
+
+Set `APP_IDENTITY="Developer ID Application: You (TEAMID)"` to sign with your own identity.
+
 ## License
 
 MIT for the code — see [LICENSE](LICENSE). © 2026 Kevin B. Ridgway. The Clawd character and the animation files belong to Anthropic and are not covered by the license.
