@@ -4,7 +4,7 @@ import glob
 import json
 import os
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = [f"assets/clawd-{n}.json" for n in ("walking", "waving", "looking")]
 FILES += sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "assets/acts/clawd-*.json")))
 
