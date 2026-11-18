@@ -28,6 +28,16 @@ final class StageTests: XCTestCase {
         XCTAssertEqual(top.y, frame.maxY)
     }
 
+    func testSpotlightRunsFromTheFloorToTheTopCentredOnHim() {
+        let frame = CGRect(x: 80, y: 70, width: 1432, height: 870)
+        let stage = Stage(visibleFrame: frame, size: ClawdSize.medium.size)
+        let beam = stage.spotlightFrame(x: 300)
+        XCTAssertEqual(beam.minY, frame.minY)
+        XCTAssertEqual(beam.maxY, frame.maxY)
+        XCTAssertEqual(beam.midX, stage.floorOrigin(x: 300).x + stage.size.width / 2, accuracy: 0.001)
+        XCTAssertEqual(beam.width, stage.size.width * Stage.spotlightWidthFactor, accuracy: 0.001)
+    }
+
     func testTeleportKeepsHimFullyInsideTheVisibleFrame() {
         let frame = CGRect(x: 0, y: 70, width: 1512, height: 870)
         let stage = Stage(visibleFrame: frame, size: ClawdSize.large.size)

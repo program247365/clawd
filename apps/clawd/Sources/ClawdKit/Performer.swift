@@ -53,6 +53,8 @@ public final class Performer {
     /// Horizontal position along the floor, in `0...stage.maxX`.
     private var offset: CGFloat = 40
     private var facing: Facing = .right
+    /// Exists only during the launch entrance.
+    private var spotlight: SpotlightWindow?
 
     public init(catalog: AnimationCatalog, window: ClawdWindow, settings: Settings) {
         self.catalog = catalog
@@ -91,6 +93,8 @@ public final class Performer {
     private func cancelLoop() {
         loop?.cancel()
         loop = nil
+        spotlight?.close()
+        spotlight = nil
         ticker.stop()
         window.stopAnimation()
     }
@@ -169,6 +173,9 @@ public final class Performer {
         var falling: TimeInterval = 0
         window.origin = top
         window.loop(waving)
+        let spotlight = SpotlightWindow(frame: stage.spotlightFrame(x: offset))
+        self.spotlight = spotlight
+        spotlight.fadeIn()
         await ticker.run(on: window) { [weak self] elapsed in
             guard let self else { return true }
             // Sum honored ticks rather than reading a clock, so a stalled frame cannot skip the fall.
@@ -182,6 +189,8 @@ public final class Performer {
             await window.play(waving)
             if Task.isCancelled { return }
         }
+        spotlight.fadeOut()
+        self.spotlight = nil
     }
 
     /// Waving is about a second and a half; two more after he lands is "a few seconds".

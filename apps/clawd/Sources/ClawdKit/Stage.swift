@@ -43,6 +43,16 @@ public struct Stage: Equatable {
         CGPoint(x: floorOrigin(x: offset).x, y: visibleFrame.maxY)
     }
 
+    /// How wide the entrance spotlight is where it meets the floor, in Clawd-widths.
+    public static let spotlightWidthFactor: CGFloat = 1.5
+
+    /// The entrance spotlight: a column from the floor to the top of the usable area, centred on him.
+    public func spotlightFrame(x offset: CGFloat) -> CGRect {
+        let width = size.width * Self.spotlightWidthFactor
+        let centre = floorOrigin(x: offset).x + size.width / 2
+        return CGRect(x: centre - width / 2, y: visibleFrame.minY, width: width, height: visibleFrame.height)
+    }
+
     /// A random spot where he is fully on screen.
     public func teleportOrigin<R: RandomNumberGenerator>(using rng: inout R) -> CGPoint {
         let roomX = visibleFrame.width - size.width
