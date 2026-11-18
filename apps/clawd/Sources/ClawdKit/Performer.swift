@@ -183,14 +183,14 @@ public final class Performer {
         }
     }
 
-    /// The launch entrance: he falls from above the screen to the floor, waving, and waves a little longer.
-    /// He then stands where he landed until the spotlight has faded.
+    /// The launch entrance: he falls from above the screen, lands, waves once, and then stands
+    /// where he landed until the spotlight has faded.
     private func dropIn(on stage: Stage, thenStandAs walking: ClawdAnimation) async {
         guard let waving = catalog.load("waving") else { return }
         let top = stage.entranceOrigin(x: offset)
         var falling: TimeInterval = 0
         window.origin = top
-        window.loop(waving)
+        window.pose(walking, frame: Self.standingFrame)
         let spotlight = SpotlightWindow(frame: stage.spotlightFrame(x: offset))
         self.spotlight = spotlight
         spotlight.fadeIn()
@@ -203,17 +203,12 @@ public final class Performer {
             return drop.landed
         }
         if Task.isCancelled { return }
-        for _ in 0..<Self.wavesAfterLanding {
-            await window.play(waving)
-            if Task.isCancelled { return }
-        }
+        await window.play(waving)
+        if Task.isCancelled { return }
         window.pose(walking, frame: Self.standingFrame)
         await spotlight.fadeOut()
         self.spotlight = nil
     }
-
-    /// Waving is about a second and a half; two more after he lands is "a few seconds".
-    private static let wavesAfterLanding = 2
 
     private func perform(_ act: ClawdAnimation) async {
         for _ in 0..<Choreography.plays(forFrameCount: act.frameCount) {

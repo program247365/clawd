@@ -14,6 +14,7 @@ public final class LockScreenVisitor {
     private typealias ShowSpaces = @convention(c) (Int32, CFArray) -> Int32
     private typealias AddWindowsToSpace = @convention(c) (Int32, UInt64, CFArray, Int32) -> Int32
     private typealias RemoveWindowsFromSpaces = @convention(c) (Int32, CFArray, CFArray) -> Int32
+    private typealias CopySpacesForWindows = @convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?
 
     private struct WindowServer {
         let mainConnection: MainConnection
@@ -22,6 +23,7 @@ public final class LockScreenVisitor {
         let showSpaces: ShowSpaces
         let addWindowsToSpace: AddWindowsToSpace
         let removeWindowsFromSpaces: RemoveWindowsFromSpaces
+        let copySpacesForWindows: CopySpacesForWindows?
 
         static let shared: WindowServer? = {
             guard let handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
@@ -39,7 +41,8 @@ public final class LockScreenVisitor {
             return WindowServer(
                 mainConnection: mainConnection, spaceCreate: spaceCreate, spaceSetLevel: spaceSetLevel,
                 showSpaces: showSpaces, addWindowsToSpace: addWindowsToSpace,
-                removeWindowsFromSpaces: removeWindowsFromSpaces)
+                removeWindowsFromSpaces: removeWindowsFromSpaces,
+                copySpacesForWindows: symbol("SLSCopySpacesForWindows", as: CopySpacesForWindows.self))
         }()
     }
 
@@ -64,6 +67,9 @@ public final class LockScreenVisitor {
 
     /// He goes only while the Mac is locked, so he never rides this space over a fullscreen app.
     @objc private func screenLocked() {
+        NSLog("ClawdLock: locked. setting=%d visiting=%d windowVisible=%d supported=%d",
+              settings.visitsLockScreen ? 1 : 0, isVisiting ? 1 : 0, window.isVisible ? 1 : 0, Self.isSupported ? 1 : 0)
+        if UserDefaults.standard.bool(forKey: "lockScreenProbe") { probeLevels(); return }
         guard settings.visitsLockScreen, !isVisiting, window.isVisible, let server = WindowServer.shared else { return }
         let connection = server.mainConnection()
         let space = self.space ?? {
@@ -77,7 +83,31 @@ public final class LockScreenVisitor {
         isVisiting = true
     }
 
+    /// Diagnostic: while locked, try a new space at each level in turn, a few seconds apart, logging each step.
+    private func probeLevels() {
+        guard let server = WindowServer.shared else { return }
+        let connection = server.mainConnection()
+        let windowNumber = window.windowNumber
+        isVisiting = true
+        Task { @MainActor in
+            for level: Int32 in [300, 400, 500, 600, 1000] {
+                let created = server.spaceCreate(connection, 1, 0)
+                let setLevel = server.spaceSetLevel(connection, created, level)
+                let shown = server.showSpaces(connection, [NSNumber(value: created)] as CFArray)
+                let moved = server.addWindowsToSpace(connection, created, [NSNumber(value: windowNumber)] as CFArray, 7)
+                let spaces = server.copySpacesForWindows?(connection, 7, [NSNumber(value: windowNumber)] as CFArray)?
+                    .takeRetainedValue() as? [NSNumber] ?? []
+                self.space = created
+                NSLog("ClawdLock: probe level=%d space=%llu setLevel=%d shown=%d moved=%d windowSpaces=%@ window=%d",
+                      level, created, setLevel, shown, moved, spaces.map(\.stringValue).joined(separator: ","), windowNumber)
+                try? await Task.sleep(for: .seconds(4))
+            }
+            NSLog("ClawdLock: probe finished")
+        }
+    }
+
     @objc private func screenUnlocked() {
+        NSLog("ClawdLock: unlocked. visiting=%d", isVisiting ? 1 : 0)
         guard isVisiting, let space, let server = WindowServer.shared else { return }
         isVisiting = false
         _ = server.removeWindowsFromSpaces(
