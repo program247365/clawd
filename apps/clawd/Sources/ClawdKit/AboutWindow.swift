@@ -56,7 +56,7 @@ private struct AboutView: View {
             VStack(spacing: 2) {
                 Text("Clawd is Anthropic's character.")
                 Text("This is an unofficial fan project.")
-                Text("© 2026 Kevin B. Ridgway · Interweb Labs").padding(.top, 6)
+                Text("© 2026 Kevin B. Ridgway").padding(.top, 6)
             }
             .font(.system(size: 11)).foregroundStyle(.secondary)
             .padding(.top, 20)
