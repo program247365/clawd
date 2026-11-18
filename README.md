@@ -50,7 +50,7 @@ Building needs a Swift 6 toolchain (Xcode 16 or newer). From the repository root
 make check
 ```
 
-`make check` rebuilds the site's animation bundle, builds the app, and runs the tests, including one that renders every animation.
+`make check` verifies every act on the site has its animation and thumbnail, builds the app, and runs the tests, including one that renders every animation.
 
 To run a local build of the app:
 

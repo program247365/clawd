@@ -1,5 +1,8 @@
 // Clawd's routine on the page: the same rules as the Mac app.
 // Walk to a stop, perform an act, repeat; about one time in four, teleport instead of walking.
+//
+// Animations are fetched one at a time. Only the walk is needed to start; each act is
+// requested while he walks toward the spot where he'll perform it.
 (() => {
   const root = document.documentElement;
   const el = document.getElementById('clawd');
@@ -14,43 +17,68 @@
   // Looping only the step cycle keeps him from sliding while posed still.
   const WALK_CYCLE = [5, 25];
   const STANDING_FRAME = 26;
+  // These three live beside the acts folder rather than in it.
+  const TOP_LEVEL = new Set(['walking', 'waving', 'looking']);
 
   const listeners = new Set();
   const api = {
-    live: false,
+    live: Boolean(window.lottie),
     perform() {},
     onAct(fn) { listeners.add(fn); },
   };
   window.Clawd = api;
 
-  // Without the animation library or data, the static Clawd in the markup stays.
-  if (!window.lottie || !window.CLAWD) {
+  // Without the animation library, or without the walk, the static Clawd in the markup stays.
+  function goStatic() {
+    api.live = false;
     root.dataset.clawd = 'static';
-    return;
+    document.dispatchEvent(new Event('clawd:static'));
   }
+  if (!window.lottie) { goStatic(); return; }
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const actNames = Object.keys(window.CLAWD).filter(n => n !== 'walking');
-  const players = {};
+  // The Acts window lists every act, so the page needs no separate manifest.
+  const actNames = [...document.querySelectorAll('.act')].map(button => button.dataset.act);
 
-  function player(name) {
-    if (!players[name]) {
-      const data = window.CLAWD[name];
-      const container = document.createElement('div');
-      container.className = 'anim';
-      body.appendChild(container);
-      const anim = lottie.loadAnimation({
-        container, renderer: 'canvas', loop: false, autoplay: false, animationData: data,
-      });
-      players[name] = { el: container, anim, frames: data.op - data.ip };
+  const players = new Map(); // name -> promise of { name, el, anim, frames }
+
+  function ready(name) {
+    if (!players.has(name)) {
+      const url = `assets/${TOP_LEVEL.has(name) ? '' : 'acts/'}clawd-${name}.json`;
+      const loading = fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error(`${url}: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          const container = document.createElement('div');
+          container.className = 'anim';
+          body.appendChild(container);
+          const anim = lottie.loadAnimation({
+            container, renderer: 'canvas', loop: false, autoplay: false, animationData: data,
+          });
+          return { name, el: container, anim, frames: data.op - data.ip };
+        });
+      // A failed download is forgotten so a later request can try again.
+      loading.catch(() => players.delete(name));
+      players.set(name, loading);
     }
-    return players[name];
+    return players.get(name);
+  }
+
+  // Keep the walk and whatever is on screen; let finished acts go.
+  function release(player) {
+    if (!player || player.name === 'walking') return;
+    players.delete(player.name);
+    player.anim.destroy();
+    player.el.remove();
   }
 
   let current = null;
-  function show(name, { loop = false, segment = null, still = null } = {}) {
-    if (current) { current.el.classList.remove('on'); current.anim.stop(); }
-    const p = current = player(name);
+  function show(p, { loop = false, segment = null, still = null } = {}) {
+    const previous = current;
+    if (previous && previous !== p) { previous.el.classList.remove('on'); previous.anim.stop(); }
+    current = p;
     p.anim.loop = loop;
     const start = () => {
       if (current !== p) return;
@@ -63,6 +91,7 @@
     // Lottie ignores playback calls made before it has finished setting up.
     if (p.anim.isLoaded) start(); else p.anim.addEventListener('DOMLoaded', start);
     p.el.classList.add('on');
+    if (previous !== p) release(previous);
     return p;
   }
 
@@ -92,11 +121,11 @@
   const interrupted = () => new Promise(resolve => wake.push(resolve));
   const pause = ms => Promise.race([new Promise(r => setTimeout(r, ms)), interrupted()]);
 
-  function walkTo(target) {
+  function walkTo(walking, target) {
     const mine = generation;
     dir = target >= x ? 1 : -1;
     announce('walking');
-    show('walking', { loop: true, segment: WALK_CYCLE });
+    show(walking, { loop: true, segment: WALK_CYCLE });
     const arrived = new Promise(resolve => {
       let last = performance.now();
       function step(now) {
@@ -116,17 +145,17 @@
     return Promise.race([arrived, interrupted()]);
   }
 
-  function perform(name) {
-    announce(name);
-    const p = show(name);
-    let plays = p.frames < SHORT_ACT_FRAMES ? 2 : 1;
+  function perform(act) {
+    announce(act.name);
+    show(act);
+    let plays = act.frames < SHORT_ACT_FRAMES ? 2 : 1;
     const finished = new Promise(resolve => {
       const done = () => {
-        if (--plays > 0) { p.anim.goToAndPlay(0, true); return; }
-        p.anim.removeEventListener('complete', done);
+        if (--plays > 0) { act.anim.goToAndPlay(0, true); return; }
+        act.anim.removeEventListener('complete', done);
         resolve();
       };
-      p.anim.addEventListener('complete', done);
+      act.anim.addEventListener('complete', done);
     });
     return Promise.race([finished, interrupted()]);
   }
@@ -150,7 +179,9 @@
   let queue = [];
   function nextAct() {
     if (!queue.length) queue = [...actNames].sort(() => Math.random() - 0.5);
-    return queue.pop();
+    const name = queue.pop();
+    // The act on screen is released when the next one takes over, so never queue it twice in a row.
+    return current && current.name === name && actNames.length > 1 ? nextAct() : name;
   }
 
   function backToFloor() {
@@ -160,8 +191,11 @@
     place();
   }
 
+  // An act that fails to download is skipped rather than stalling him.
+  const fetchAct = name => ready(name).catch(() => null);
+
   let requested = null;
-  async function run() {
+  async function run(walking) {
     place();
     for (;;) {
       const mine = generation;
@@ -171,79 +205,91 @@
       if (requested) {
         const name = requested;
         requested = null;
-        await perform(name);
+        const act = await fetchAct(name);
+        if (generation !== mine) continue;
+        if (act) await perform(act);
         continue;
       }
 
       const name = nextAct();
+      const loading = fetchAct(name); // downloads while he walks
       if (Math.random() < TELEPORT_CHANCE) {
+        const act = await loading;
+        if (generation !== mine) continue;
+        if (!act) { await pause(1000); continue; }
         await pop(false);
         if (generation !== mine) continue;
         const menubar = document.querySelector('.menubar').offsetHeight;
         x = Math.random() * maxX();
         lift = Math.random() * Math.max(0, innerHeight - menubar - el.offsetHeight);
         place();
-        show(name, { still: 0 });
+        show(act, { still: 0 });
         await pop(true);
         if (generation !== mine) continue;
-        await perform(name);
+        await perform(act);
         if (generation !== mine) continue;
         await pop(false);
         if (generation !== mine) continue;
         x = Math.random() * maxX();
         lift = 0;
         place();
-        show('walking', { still: STANDING_FRAME });
+        show(walking, { still: STANDING_FRAME });
         await pop(true);
       } else {
-        await walkTo(randomStop());
+        await walkTo(walking, randomStop());
         if (generation !== mine) continue;
-        await perform(name);
+        const act = await loading;
+        if (generation !== mine) continue;
+        if (act) await perform(act);
       }
     }
   }
 
   // With reduced motion he stands still; asking for an act shows a still of it.
   let stillTimer = null;
-  function stand() {
+  function stand(walking) {
     backToFloor();
     announce('standing');
-    show('walking', { still: STANDING_FRAME });
+    show(walking, { still: STANDING_FRAME });
   }
-  function showStill(name) {
+  async function showStill(walking, name) {
     clearTimeout(stillTimer);
+    const act = await fetchAct(name);
+    if (!act) return;
     announce(name);
-    show(name, { still: Math.round((player(name).frames - 1) / 2) });
-    stillTimer = setTimeout(stand, 4000);
+    show(act, { still: Math.round((act.frames - 1) / 2) });
+    stillTimer = setTimeout(() => stand(walking), 4000);
   }
-
-  api.live = true;
-  api.perform = name => {
-    if (!actNames.includes(name)) return;
-    if (reducedMotion) { showStill(name); return; }
-    requested = name;
-    interrupt();
-  };
-
-  new MutationObserver(() => {
-    // Size or visibility changed: start the routine over from the floor at the new size.
-    requestAnimationFrame(() => {
-      resizePlayers();
-      if (reducedMotion) stand(); else interrupt();
-    });
-  }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
 
   // Resizing clears each canvas. A playing animation repaints on its next frame; a still one never would.
-  function resizePlayers() {
-    for (const p of Object.values(players)) p.anim.resize();
-    if (current && current.anim.isPaused) current.anim.goToAndStop(current.anim.currentFrame, true);
+  function resizeCurrent() {
+    if (!current) return;
+    current.anim.resize();
+    if (current.anim.isPaused) current.anim.goToAndStop(current.anim.currentFrame, true);
   }
 
-  addEventListener('resize', () => {
-    resizePlayers();
-    x = Math.min(x, maxX());
-    place();
-  });
+  ready('walking').then(walking => {
+    api.perform = name => {
+      if (!actNames.includes(name)) return;
+      if (reducedMotion) { showStill(walking, name); return; }
+      requested = name;
+      interrupt();
+    };
 
-  if (reducedMotion) stand(); else run();
+    new MutationObserver(() => {
+      // Size or visibility changed: start the routine over from the floor at the new size.
+      requestAnimationFrame(() => {
+        resizeCurrent();
+        if (reducedMotion) stand(walking); else interrupt();
+      });
+    }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
+
+    addEventListener('resize', () => {
+      resizeCurrent();
+      x = Math.min(x, maxX());
+      place();
+    });
+
+    if (reducedMotion) stand(walking); else run(walking);
+  }, goStatic);
 })();

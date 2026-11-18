@@ -50,10 +50,14 @@
     clawd.onAct(name => {
       for (const act of acts) act.setAttribute('aria-pressed', String(act.dataset.act === name));
     });
-  } else {
+  }
+  // No animation library, or the walk never arrived: the thumbnails still show what he does.
+  function showActsAsStills() {
     hint.textContent = "The animations didn't load, but here is everything he does.";
     for (const act of acts) act.disabled = true;
   }
+  if (!clawd || !clawd.live) showActsAsStills();
+  document.addEventListener('clawd:static', showActsAsStills);
 
   // Copy buttons.
   for (const copy of document.querySelectorAll('.copy')) {

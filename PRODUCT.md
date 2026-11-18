@@ -50,7 +50,7 @@ The real Clawd, with his original animations, walking on your actual desktop rat
 
 ## Evidence on Hand
 
-- The live demo: `apps/website/index.html` and the animation bundle `apps/website/assets/clawd-data.js`.
+- The live demo: `apps/website/index.html`, which fetches each animation from `apps/website/assets/` when it is needed.
 - The app icon and menubar icon: `apps/clawd/Resources/`.
 - A contact sheet of all 37 animations can be regenerated with `make -C apps/clawd check` (`apps/clawd/.build/contact-sheet.png`).
 - No testimonials, download counts, press, or screenshots of the app on a real desktop exist yet. Do not invent any.
