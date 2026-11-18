@@ -35,7 +35,7 @@ The real Clawd, with his original animations, walking on your actual desktop rat
 - Clicks, scrolls, and typing pass through him. He stays out of native fullscreen apps, the Dock, and Cmd-Tab.
 - Measured footprint: about 18MB of memory and about 4% of one CPU core.
 - 37 animations, plain Lottie vector files at 12fps, in `apps/website/assets/`.
-- Until the first release is published, the download control is in a "Coming soon" state and is not a link.
+- The download control links to `https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg`. The Homebrew cask is not published yet, and the page says so.
 - The page must work at 375px wide, show a still Clawd under reduced motion, and still show its text and download control if the animation library fails to load.
 
 ## Brand Commitments

@@ -50,13 +50,20 @@
   let current = null;
   function show(name, { loop = false, segment = null, still = null } = {}) {
     if (current) { current.el.classList.remove('on'); current.anim.stop(); }
-    current = player(name);
-    current.anim.loop = loop;
-    if (still !== null) current.anim.goToAndStop(still, true);
-    else if (segment) current.anim.playSegments(segment, true);
-    else current.anim.goToAndPlay(0, true);
-    current.el.classList.add('on');
-    return current;
+    const p = current = player(name);
+    p.anim.loop = loop;
+    const start = () => {
+      if (current !== p) return;
+      if (still !== null) p.anim.goToAndStop(still, true);
+      else if (segment) p.anim.playSegments(segment, true);
+      else p.anim.goToAndPlay(0, true);
+      // Only now is he drawn, so only now does the static Clawd in the markup step aside.
+      root.dataset.clawd = 'live';
+    };
+    // Lottie ignores playback calls made before it has finished setting up.
+    if (p.anim.isLoaded) start(); else p.anim.addEventListener('DOMLoaded', start);
+    p.el.classList.add('on');
+    return p;
   }
 
   function announce(name) {
@@ -232,6 +239,5 @@
     place();
   });
 
-  root.dataset.clawd = 'live';
   if (reducedMotion) stand(); else run();
 })();
