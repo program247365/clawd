@@ -34,9 +34,10 @@ The real Clawd, with his original animations, walking on your actual desktop rat
 
 - macOS 14 or later, Apple silicon and Intel. Windows and Linux are planned, not available.
 - Clicks, scrolls, and typing pass through him. He stays out of native fullscreen apps, the Dock, and Cmd-Tab.
-- Measured footprint: about 18MB of memory and about 4% of one CPU core.
+- Measured footprint: about 18MB of memory just after launch and about 40MB after fifteen minutes of running, and about 4% of one CPU core.
 - 37 animations, plain Lottie vector files at 12fps, in `apps/website/assets/`.
-- The download control links to `https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg`. The Homebrew cask is not published yet, and the page says so.
+- The download control links to `https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg`. The Homebrew cask `program247365/tap/clawd` is published.
+- An optional setting lets him appear on the lock screen. It relies on private macOS functions, is off by default, and disables itself if a macOS update removes them.
 - The page must work at 375px wide, show a still Clawd under reduced motion, and still show its text and download control if the animation library fails to load.
 
 ## Brand Commitments

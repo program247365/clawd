@@ -302,6 +302,24 @@ a.download:hover, button.download:not(:disabled):hover { background: var(--clawd
 .dock a:hover, .dock a:focus-visible { transform: translateY(-6px) scale(1.08); }
 .dock img, .dock svg { display: block; width: 3.25rem; height: 3.25rem; }
 
+/* The entrance spotlight: a cone of light from the top of the window, with a pool where it lands. */
+#spotlight {
+  position: fixed; top: 0; bottom: 0; left: 50%; z-index: 29;
+  width: calc(var(--clawd-w) * 0.9);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s linear;
+  background: linear-gradient(rgba(255, 245, 214, 0.42), rgba(255, 245, 214, 0.12));
+  clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%);
+}
+#spotlight[data-on] { opacity: 1; transition-duration: 0.25s; }
+#spotlight::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--clawd-w) * 0.2);
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 245, 214, 0.6), rgba(255, 245, 214, 0) 70%);
+}
+:root[data-hidden] #spotlight { display: none; }
+
 /* Clawd: in front of everything, and clicks pass straight through him. */
 
 #clawd {

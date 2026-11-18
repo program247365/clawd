@@ -56,7 +56,7 @@
           <button type="button" class="copy" data-copy="brew-command" aria-label="Copy the Homebrew command">Copy</button>
         </div>
       </div>
-      <p class="requirements"><span id="platform-note">Requires macOS 14 or later, on Apple silicon or Intel.</span> The Homebrew cask is on its way; the download works today.</p>
+      <p class="requirements"><span id="platform-note">Requires macOS 14 or later, on Apple silicon or Intel.</span> Free and open source.</p>
       <p class="disclaimer">Clawd is Anthropic's character. This is an unofficial fan project.</p>
     </div>
   </section>
@@ -112,12 +112,14 @@
     <div class="window-body">
       <p>I wanted Clawd to keep me company outside the terminal, so I made him a home on the desktop. It's free, it's open source, and it's just me.</p>
       <ul class="facts">
-        <li>He walks, stops to fish or juggle, and will roam the whole screen if you let him.</li>
+        <li>He makes an entrance. Open the app and he drops in under a spotlight, lands, and gives you a wave.</li>
+        <li>He keeps to the bottom of your screen, stopping to fish or juggle. Flip a setting and he'll roam the whole thing.</li>
+        <li>He'll visit your lock screen, if you invite him. It's a trick macOS doesn't officially offer, so it's off until you ask.</li>
         <li>He lives in your menubar. No Dock icon, no windows.</li>
         <li>He never takes a click, a scroll, or a keystroke.</li>
         <li>He steps aside for fullscreen apps.</li>
         <li>He comes in Small, Medium, and Large. Try the menu up top.</li>
-        <li>He uses about 18 MB of memory.</li>
+        <li>He's light: about 40 MB of memory.</li>
       </ul>
       <p>Mac only for now. Windows and Linux are planned.</p>
     </div>
@@ -147,6 +149,7 @@
   <a href="https://github.com/program247365/clawd" target="_blank" rel="noopener" title="Source"><svg viewBox="0 0 52 52" role="img" aria-label="Source on GitHub"><rect x="6" y="8" width="40" height="36" rx="6" fill="#141413"/><path d="M21 19l-7 7 7 7M31 19l7 7-7 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
 </nav>
 
+<div id="spotlight" aria-hidden="true"></div>
 <div id="clawd" aria-hidden="true">
   <div class="clawd-body">
     <div class="clawd-fallback"><svg viewBox="0 0 120 80" aria-hidden="true"><rect x="20" y="0" width="80" height="60" fill="#d97757"/><rect x="0" y="20" width="20" height="20" fill="#d97757"/><rect x="100" y="20" width="20" height="20" fill="#d97757"/><rect x="20" y="60" width="10" height="20" fill="#d97757"/><rect x="40" y="60" width="10" height="20" fill="#d97757"/><rect x="70" y="60" width="10" height="20" fill="#d97757"/><rect x="90" y="60" width="10" height="20" fill="#d97757"/><rect x="30" y="10" width="10" height="10" fill="#141413"/><rect x="80" y="10" width="10" height="10" fill="#141413"/></svg></div>

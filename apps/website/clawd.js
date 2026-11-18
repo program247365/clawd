@@ -17,6 +17,7 @@
   // Looping only the step cycle keeps him from sliding while posed still.
   const WALK_CYCLE = [5, 25];
   const STANDING_FRAME = 26;
+  const GRAVITY = 2400;                // px per second squared, the same fall as the app's entrance
   // These three live beside the acts folder rather than in it.
   const TOP_LEVEL = new Set(['walking', 'waving', 'looking']);
 
@@ -201,9 +202,53 @@
   // A slow download must not hold up a click or a size change: resolves null if interrupted first.
   const unlessInterrupted = loading => Promise.race([loading, interrupted().then(() => null)]);
 
-  let requested = null;
-  async function run(walking) {
+  // The app's launch entrance, on page load: he drops in under a spotlight, lands, waves once,
+  // the light fades, and only then does he start walking.
+  async function entrance(walking) {
+    const spotlight = document.getElementById('spotlight');
+    const waving = fetchAct('waving');
+    x = Math.round(maxX() / 2);
+    dir = 1;
+    lift = innerHeight;
     place();
+    show(walking, { still: STANDING_FRAME });
+    if (spotlight) {
+      spotlight.style.left = `${x + width() / 2}px`;
+      spotlight.dataset.on = '';
+    }
+    await new Promise(resolve => {
+      const top = lift;
+      let falling = 0;
+      let last = performance.now();
+      function step(now) {
+        falling += Math.min(now - last, 50) / 1000;
+        last = now;
+        lift = Math.max(0, top - 0.5 * GRAVITY * falling * falling);
+        place();
+        if (lift <= 0) resolve(); else requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+      // Frames pause in a background tab; he still lands.
+      setTimeout(() => { lift = 0; place(); resolve(); }, 1500);
+    });
+    const wave = await waving;
+    if (wave) {
+      announce('waving');
+      show(wave);
+      await Promise.race([
+        new Promise(resolve => wave.anim.addEventListener('complete', resolve, { once: true })),
+        new Promise(resolve => setTimeout(resolve, 3000)),
+      ]);
+    }
+    show(walking, { still: STANDING_FRAME });
+    if (spotlight) delete spotlight.dataset.on;
+    await new Promise(resolve => setTimeout(resolve, 700));
+  }
+
+  let requested = null;
+  let walksFirst = true; // after the entrance his first move is a walk from where he landed
+  async function run(walking) {
+    await entrance(walking);
     for (;;) {
       const mine = generation;
       backToFloor();
@@ -221,7 +266,9 @@
 
       const name = nextAct();
       const loading = fetchAct(name); // downloads while he walks
-      if (Math.random() < TELEPORT_CHANCE) {
+      const teleports = !walksFirst && Math.random() < TELEPORT_CHANCE;
+      walksFirst = false;
+      if (teleports) {
         const act = await unlessInterrupted(loading);
         if (generation !== mine) continue;
         if (!act) { await pause(1000); continue; }
