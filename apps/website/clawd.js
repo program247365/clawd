@@ -228,13 +228,19 @@
   new MutationObserver(() => {
     // Size or visibility changed: start the routine over from the floor at the new size.
     requestAnimationFrame(() => {
-      for (const p of Object.values(players)) p.anim.resize();
+      resizePlayers();
       if (reducedMotion) stand(); else interrupt();
     });
   }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
 
-  addEventListener('resize', () => {
+  // Resizing clears each canvas. A playing animation repaints on its next frame; a still one never would.
+  function resizePlayers() {
     for (const p of Object.values(players)) p.anim.resize();
+    if (current && current.anim.isPaused) current.anim.goToAndStop(current.anim.currentFrame, true);
+  }
+
+  addEventListener('resize', () => {
+    resizePlayers();
     x = Math.min(x, maxX());
     place();
   });
