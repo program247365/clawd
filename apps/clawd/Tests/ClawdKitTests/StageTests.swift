@@ -47,7 +47,7 @@ final class StageTests: XCTestCase {
 
     @MainActor
     func testFootInsetMatchesTheArt() throws {
-        let walking = try XCTUnwrap(AnimationCatalog(directory: stagedAnimations()).walking)
+        let walking = try XCTUnwrap(AnimationCatalog(directory: stagedAnimations()).load("walking"))
         let height = 370
         var lowest = 0
         for frame in 5...24 {

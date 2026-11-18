@@ -14,6 +14,7 @@ public final class ClawdWindow {
     private let animationView: LottieAnimationView
     private var scale: CGFloat = 1
     private var pendingPlay: CheckedContinuation<Void, Never>?
+    private var frameTimer: Timer?
 
     public init(size: CGSize) {
         panel = PassivePanel(
@@ -36,7 +37,6 @@ public final class ClawdWindow {
         animationView.frame = container.bounds
         animationView.autoresizingMask = [.width, .height]
         animationView.contentMode = .scaleAspectFit
-        animationView.backgroundBehavior = .pauseAndRestore
         container.addSubview(animationView)
         panel.contentView = container
     }
@@ -72,33 +72,47 @@ public final class ClawdWindow {
     }
 
     public func loopWalk(_ walking: ClawdAnimation) {
-        finishPendingPlay()
-        animationView.animation = walking.animation
-        animationView.play(
-            fromFrame: Choreography.walkCycle.lowerBound, toFrame: Choreography.walkCycle.upperBound,
-            loopMode: .loop)
+        let cycle = Choreography.walkCycle
+        startFrames(of: walking, from: cycle.lowerBound, through: cycle.upperBound, loop: true)
     }
 
-    /// Shows the first frame without playing.
+    /// Shows one frame without playing.
     public func pose(_ animation: ClawdAnimation, frame: CGFloat) {
-        finishPendingPlay()
+        stopAnimation()
         animationView.animation = animation.animation
         animationView.currentFrame = frame
     }
 
     /// Plays once from the first frame to the last. Returns early if interrupted.
     public func play(_ animation: ClawdAnimation) async {
-        finishPendingPlay()
-        animationView.animation = animation.animation
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            startFrames(
+                of: animation, from: animation.animation.startFrame,
+                through: animation.animation.endFrame - 1, loop: false)
             pendingPlay = continuation
-            animationView.play(
-                fromFrame: animation.animation.startFrame, toFrame: animation.animation.endFrame,
-                loopMode: .playOnce
-            ) { [weak self] _ in
-                Task { @MainActor in self?.finishPendingPlay() }
+        }
+    }
+
+    /// Steps through whole frames at the animation's own rate (12fps for this art) instead of letting
+    /// Lottie redraw on every display refresh: it looks the same and costs a fraction of the CPU.
+    private func startFrames(of item: ClawdAnimation, from first: CGFloat, through last: CGFloat, loop: Bool) {
+        stopAnimation()
+        animationView.animation = item.animation
+        animationView.currentFrame = first
+        var frame = first
+        let timer = Timer(timeInterval: 1 / max(item.animation.framerate, 1), repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                frame += 1
+                if frame > last {
+                    guard loop else { return self.stopAnimation() }
+                    frame = first
+                }
+                self.animationView.currentFrame = frame
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        frameTimer = timer
     }
 
     /// A quick scale-and-fade. Always ends in the stated state, even if interrupted.
@@ -121,12 +135,15 @@ public final class ClawdWindow {
         animationView.alphaValue = visible ? 1 : 0
     }
 
-    public func stopAnimation() {
-        animationView.stop()
-        finishPendingPlay()
+    /// A display link tied to the screen this window is on.
+    public func displayLink(target: Any, selector: Selector) -> CADisplayLink? {
+        panel.contentView?.displayLink(target: target, selector: selector)
     }
 
-    private func finishPendingPlay() {
+    /// Stops on the current frame and ends any `play` that is waiting.
+    public func stopAnimation() {
+        frameTimer?.invalidate()
+        frameTimer = nil
         pendingPlay?.resume()
         pendingPlay = nil
     }

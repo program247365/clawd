@@ -20,7 +20,11 @@ final class RenderTests: XCTestCase {
 
         let catalog = AnimationCatalog(directory: stagedAnimations())
         let size = CGSize(width: 550, height: 370)
-        for item in catalog.all {
+        for name in catalog.names {
+            guard let item = catalog.load(name) else {
+                problems.append("\(name): failed to load")
+                continue
+            }
             let last = CGFloat(item.frameCount - 1)
             for frame in [0, (last / 2).rounded(), last] {
                 current = "\(item.name)@\(Int(frame))"
@@ -38,7 +42,7 @@ final class RenderTests: XCTestCase {
     }
 
     func testClawdIsRightSideUp() throws {
-        let walking = try XCTUnwrap(AnimationCatalog(directory: stagedAnimations()).walking)
+        let walking = try XCTUnwrap(AnimationCatalog(directory: stagedAnimations()).load("walking"))
         let image = try XCTUnwrap(FrameRenderer.render(walking.animation, frame: 26, pixelSize: CGSize(width: 550, height: 370)))
         let stats = PixelStats(image)
         let top = Double(try XCTUnwrap(stats.highestOpaqueRow))
@@ -52,7 +56,7 @@ final class RenderTests: XCTestCase {
         let tile = CGSize(width: 275, height: 185)
         let labelHeight: CGFloat = 22
         let columns = 7
-        let rows = Int((Double(catalog.all.count) / Double(columns)).rounded(.up))
+        let rows = Int((Double(catalog.names.count) / Double(columns)).rounded(.up))
         let sheetSize = CGSize(width: tile.width * CGFloat(columns), height: (tile.height + labelHeight) * CGFloat(rows))
 
         let bitmap = NSBitmapImageRep(
@@ -63,7 +67,8 @@ final class RenderTests: XCTestCase {
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
         NSColor(red: 0xfa / 255, green: 0xf9 / 255, blue: 0xf5 / 255, alpha: 1).setFill()
         NSRect(origin: .zero, size: sheetSize).fill()
-        for (index, item) in catalog.all.enumerated() {
+        for (index, name) in catalog.names.enumerated() {
+            let item = try XCTUnwrap(catalog.load(name))
             let column = index % columns
             let row = index / columns
             let x = CGFloat(column) * tile.width

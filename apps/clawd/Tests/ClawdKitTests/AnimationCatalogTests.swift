@@ -2,23 +2,26 @@ import ClawdKit
 import XCTest
 
 final class AnimationCatalogTests: XCTestCase {
-    func testCatalogLoadsEveryStagedFile() throws {
+    func testCatalogListsEveryStagedFile() throws {
         let staged = stagedAnimations()
         let files = try FileManager.default.contentsOfDirectory(atPath: staged.path)
             .filter { $0.hasSuffix(".json") }
         let catalog = AnimationCatalog(directory: staged)
-        XCTAssertEqual(catalog.all.count, files.count)
-        XCTAssertGreaterThanOrEqual(catalog.all.count, 37)
-        XCTAssertNotNil(catalog.walking)
-        XCTAssertEqual(catalog.acts.count, catalog.all.count - 1)
-        XCTAssertFalse(catalog.acts.contains { $0.name == "walking" })
+        XCTAssertEqual(catalog.names.count, files.count)
+        XCTAssertGreaterThanOrEqual(catalog.names.count, 37)
+        XCTAssertEqual(catalog.names, catalog.names.sorted())
+        XCTAssertTrue(catalog.names.contains("walking"))
+        XCTAssertEqual(catalog.actNames.count, catalog.names.count - 1)
+        XCTAssertFalse(catalog.actNames.contains("walking"))
     }
 
-    func testWalkingHasTheStepCycle() {
-        XCTAssertEqual(AnimationCatalog(directory: stagedAnimations()).walking?.frameCount, 28)
+    func testLoadsAnAnimationByName() throws {
+        let walking = try XCTUnwrap(AnimationCatalog(directory: stagedAnimations()).load("walking"))
+        XCTAssertEqual(walking.name, "walking")
+        XCTAssertEqual(walking.frameCount, 28)
     }
 
-    func testCorruptAndMissingFilesAreSkipped() throws {
+    func testCorruptAndUnknownAnimationsLoadAsNil() throws {
         let temp = makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: temp) }
         try FileManager.default.copyItem(
@@ -29,18 +32,21 @@ final class AnimationCatalogTests: XCTestCase {
 
         let catalog = AnimationCatalog(directory: temp)
 
-        XCTAssertEqual(catalog.all.map(\.name), ["waving"])
-        XCTAssertNil(catalog.walking)
+        XCTAssertEqual(catalog.names, ["broken", "waving"])
+        XCTAssertNotNil(catalog.load("waving"))
+        XCTAssertNil(catalog.load("broken"))
+        XCTAssertNil(catalog.load("walking"))
+        XCTAssertNil(catalog.load("../waving"))
     }
 
     func testEmptyDirectoryGivesEmptyCatalog() {
         let temp = makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: temp) }
-        XCTAssertTrue(AnimationCatalog(directory: temp).all.isEmpty)
+        XCTAssertTrue(AnimationCatalog(directory: temp).names.isEmpty)
     }
 
     func testMissingDirectoryGivesEmptyCatalog() {
         let missing = URL(fileURLWithPath: "/nonexistent/clawd-\(UUID().uuidString)")
-        XCTAssertTrue(AnimationCatalog(directory: missing).all.isEmpty)
+        XCTAssertTrue(AnimationCatalog(directory: missing).names.isEmpty)
     }
 }
