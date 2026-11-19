@@ -3,7 +3,7 @@ ANIMATIONS := .build/animations
 CHARACTERS := .build/characters
 ASEPRITE ?= /Applications/Aseprite.app/Contents/MacOS/aseprite
 
-.PHONY: animations check icons thumbs readme-gif app run release new-character export-characters site-characters
+.PHONY: animations check icons readme-gif app run release new-character export-characters site-characters
 
 animations:
 	rm -rf $(ANIMATIONS)
@@ -73,11 +73,6 @@ icons: animations
 	.build/debug/IconTool $(ANIMATIONS) .build/icons
 	iconutil -c icns .build/icons/AppIcon.iconset -o Resources/AppIcon.icns
 	cp .build/icons/MenuIcon.png .build/icons/MenuIcon@2x.png Resources/
-
-# Regenerates the website's act thumbnails (the middle frame of each act).
-thumbs: animations
-	swift build --product IconTool
-	.build/debug/IconTool --thumbs $(ANIMATIONS) ../website/assets/thumbs
 
 # Regenerates the waving Clawd at the top of the README (needs ImageMagick).
 readme-gif: animations

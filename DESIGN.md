@@ -303,7 +303,7 @@ Hybrid, and sparse. Windows float on the desk with one soft, downward shadow tin
 
 Two form languages that never mix. Desktop furniture is soft and concentric: windows 14px, the Dock plate 20px, controls and cards 12px, the icon tile 10px, the menu panel 9px, keys 8px, and small chips (menubar items, menu rows, labels, the badge) 5px. Inner radii are always smaller than the container they sit in. Traffic lights are 0.75rem circles.
 
-Clawd and everything cut from him is square: his fallback figure, the menubar glyph, the desk tile and the 0.5625rem list bullet are all drawn on his pixel grid with crisp edges and no radius. Act thumbnails render with `image-rendering: pixelated`.
+Clawd and everything cut from him is square: his fallback figure, the menubar glyph, the desk tile and the 0.5625rem list bullet are all drawn on his pixel grid with crisp edges and no radius. The cast on the character-select stage and in the About window renders with `image-rendering: pixelated`, at whole multiples of an art pixel.
 
 Borders are rare: 1px Hairline dividers between rows and above the unofficial line. Windows, cards and controls have no outline stroke; their edge is the colour change against the desk or paper.
 
@@ -329,11 +329,11 @@ The Homebrew command on a Terminal Well ground (12px radius), platform monospace
 - **Internal Padding:** the window-pad scale; tighter for icon grids, 1.25rem for the About window.
 - Each window is a labelled section; its title bar names it.
 
-### Icon tiles (Acts)
-A Finder icon view. Each tile is a button: a pixelated thumbnail (max 8.25rem) over a caption label, 10px radius, no ground at rest. Hover adds Wash. The act Clawd is currently performing shows Selected Wash with its label inverted to ink in a 5px chip; the selection follows him, whether the visitor chose the act or he did. If the animations did not load, the tiles are disabled and the hint says so.
+### Character select (Characters)
+The app's character-select screen, inside a window: a dark stage (#16141c) with the title in Jersey 15, the cast standing in a row on a floor band (#24202e, 2px #3a3446 edge), each idling at 6 CSS pixels per art pixel. The pick gets a pale cone of light and a bouncing "P1" tag with a stepped pixel arrow in Clawd Orange; the others sit at 72% opacity and 70% saturation. Below, the pick's name in Jersey 15 and their blurb. The row is a radio group: click or arrow keys. Picking someone swaps who walks the page. Without the animation library each slot shows a still; with reduced motion they hold one pose.
 
 ### About window
-A narrow window on the About Ground: a white card (12px) with the 88px app icon, the name as a title and the tagline as a caption; then a white grouped list (12px, clipped) of full-width rows separated by hairlines, each ending in a small up-and-right arrow because it opens elsewhere; then a centred caption carrying the unofficial line.
+A narrow window on the About Ground: a white card (12px) with the 88px app icon, the name as a title, the version, the tagline as a caption, and the cast in a row at 2px per art pixel; then a white grouped list (12px, clipped) of full-width rows separated by hairlines, each ending in a small up-and-right arrow because it opens elsewhere; then a centred caption carrying the unofficial line.
 
 ### Lists
 Read Me facts are a single-column list with a 0.625rem gap; each item is marked by one square Clawd Orange pixel (0.5625rem) instead of a bullet.

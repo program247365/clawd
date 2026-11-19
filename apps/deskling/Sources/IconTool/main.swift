@@ -87,21 +87,6 @@ func appIcon(clawd: CGImage, pixels: Int) -> CGImage {
     }
 }
 
-/// Writes a small still of every act (its middle frame) for the website's Acts window.
-/// Usage: IconTool --thumbs <staged animations directory> <output directory>
-@MainActor
-func writeThumbnails(animations: URL, output: URL) throws {
-    let catalog = AnimationCatalog(directory: animations)
-    try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-    for name in catalog.actNames {
-        guard let act = catalog.load(name) else { continue }
-        let middle = (CGFloat(act.frameCount - 1) / 2).rounded()
-        guard let image = FrameRenderer.render(act.animation, frame: middle, pixelSize: CGSize(width: 264, height: 178))
-        else { continue }
-        try writePNG(image, to: output.appendingPathComponent("\(name).png"))
-    }
-}
-
 /// Writes every frame of one animation as a numbered PNG, for building the README's animated GIF.
 /// Usage: IconTool --frames <staged animations directory> <animation name> <output directory>
 @MainActor
@@ -124,15 +109,6 @@ MainActor.assumeIsolated {
             try writeFrames(
                 animations: URL(fileURLWithPath: arguments[2]), name: arguments[3],
                 output: URL(fileURLWithPath: arguments[4]))
-            exit(0)
-        } catch {
-            FileHandle.standardError.write(Data("IconTool: \(error.localizedDescription)\n".utf8))
-            exit(1)
-        }
-    }
-    if arguments.count == 4, arguments[1] == "--thumbs" {
-        do {
-            try writeThumbnails(animations: URL(fileURLWithPath: arguments[2]), output: URL(fileURLWithPath: arguments[3]))
             exit(0)
         } catch {
             FileHandle.standardError.write(Data("IconTool: \(error.localizedDescription)\n".utf8))
