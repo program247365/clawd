@@ -39,7 +39,11 @@ sign() { codesign --force --options runtime --timestamp --sign "$IDENTITY" "$@";
 find "$APP/Contents/Resources" -maxdepth 1 -name '*.bundle' -print0 | while IFS= read -r -d '' bundle; do
     sign "$bundle"
 done
-# Nested code is signed before the app that contains it.
+# Nested code is signed before the app that contains it, Sparkle's from the inside out.
+sparkle="$APP/Contents/Frameworks/Sparkle.framework"
+sign "$sparkle/Versions/B/Autoupdate"
+sign "$sparkle/Versions/B/Updater.app"
+sign "$sparkle"
 sign "$APP/Contents/Helpers/deskling-hook"
 sign "$APP"
 codesign --verify --strict --deep "$APP"

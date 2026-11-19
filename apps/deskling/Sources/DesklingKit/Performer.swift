@@ -44,8 +44,28 @@ private final class Ticker: NSObject {
 @MainActor
 public final class Performer {
     private enum Mode {
-        case idle, entrance, routine, watching, reacting, alerting, napping
+        case idle, entrance, routine, watching, reacting, alerting, napping, announcing
     }
+
+    /// Something to tell you that is not about an agent, such as an update. He says each line in turn
+    /// and holds the last one until `endAnnouncement()`, or until `holdFor` has passed.
+    public struct Announcement {
+        public var lines: [String]
+        /// Set when clicking him should do something while he holds the last line.
+        public var onClick: (() -> Void)?
+        public var holdFor: TimeInterval?
+        public var onTimeout: (() -> Void)?
+
+        public init(lines: [String], onClick: (() -> Void)? = nil, holdFor: TimeInterval? = nil, onTimeout: (() -> Void)? = nil) {
+            self.lines = lines
+            self.onClick = onClick
+            self.holdFor = holdFor
+            self.onTimeout = onTimeout
+        }
+    }
+
+    /// How long each line of an announcement stays up before the next.
+    static let announcementLineDuration: TimeInterval = 3.5
 
     private var character: Character
     private var catalog: AnimationCatalog
@@ -73,6 +93,8 @@ public final class Performer {
     public private(set) var alertText: String?
     /// Called when you click him, or his bubble, while he waves for an agent.
     public var onAlertClick: (() -> Void)?
+    /// What he has to tell you once no agent needs him; nil when nothing.
+    public private(set) var announcement: Announcement?
     private let visibleFrame: () -> CGRect?
     private let alertFrame: () -> CGRect?
     private let cursorLocation: () -> CGPoint
@@ -213,6 +235,27 @@ public final class Performer {
         if mode == .alerting { interrupt(as: .routine) { _, _ in } }
     }
 
+    /// Stops what he is doing to tell you something, unless an agent needs you or you are away:
+    /// then it waits until that is over.
+    public func announce(_ announcement: Announcement) {
+        self.announcement = announcement
+        switch mode {
+        case .routine, .watching, .reacting, .announcing: interrupt(as: .announcing) { _, _ in }
+        default: break // picked up when the routine would start
+        }
+    }
+
+    /// Changes what he is saying without starting over, as for download progress. Takes no clicks.
+    public func updateAnnouncement(_ text: String) {
+        guard announcement != nil else { return announce(Announcement(lines: [text])) }
+        announcement = Announcement(lines: [text])
+    }
+
+    public func endAnnouncement() {
+        announcement = nil
+        if mode == .announcing { interrupt(as: .routine) { _, _ in } }
+    }
+
     // MARK: Routine
 
     private func cancelLoop() {
@@ -223,12 +266,11 @@ public final class Performer {
         ticker.stop()
         window.stopAnimation()
         bubble.hide()
-        takesClicks(false)
+        takesClicks(nil)
     }
 
-    /// He only ever takes a click while waving for an agent; the rest of the time clicks pass through him.
-    private func takesClicks(_ on: Bool) {
-        let click: (() -> Void)? = on ? { [weak self] in self?.onAlertClick?() } : nil
+    /// He only takes a click while he has something for it to do; the rest of the time clicks pass through him.
+    private func takesClicks(_ click: (() -> Void)?) {
         window.onClick = click
         bubble.onClick = click
     }
@@ -283,13 +325,53 @@ public final class Performer {
         await carryOn(on: stage)
     }
 
-    /// The alert if an agent is waiting on you, otherwise the routine.
+    /// The alert if an agent is waiting on you, then anything he has to tell you, otherwise the routine.
     private func carryOn(on stage: Stage) async {
         if alertText != nil, settings.alertsForAgents {
             await waveForAttention()
+        } else if announcement != nil {
+            await tellYou()
+            if !Task.isCancelled { await routine(on: stage) }
         } else {
             await routine(on: stage)
         }
+    }
+
+    /// Waves hello, then says the announcement's lines in turn and holds the last.
+    /// Reads `announcement` afresh each step, so `updateAnnouncement` shows without starting over.
+    private func tellYou() async {
+        mode = .announcing
+        face(.right)
+        if let waving = catalog.load("waving") { await window.play(waving) }
+        if Task.isCancelled { return }
+        standStill()
+        var index = 0
+        var said: String?
+        var holdingSince: Date?
+        while !Task.isCancelled, let current = announcement, !current.lines.isEmpty {
+            let line = min(index, current.lines.count - 1)
+            if current.lines[line] != said {
+                said = current.lines[line]
+                say(current.lines[line])
+            }
+            let isLast = line == current.lines.count - 1
+            takesClicks(isLast ? current.onClick : nil)
+            if !isLast {
+                index += 1
+                try? await Task.sleep(for: .seconds(Self.announcementLineDuration))
+                continue
+            }
+            let since = holdingSince ?? Date()
+            holdingSince = since
+            if let hold = current.holdFor, Date().timeIntervalSince(since) >= hold {
+                announcement = nil
+                current.onTimeout?()
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        bubble.hide()
+        takesClicks(nil)
     }
 
     /// A teleport can leave him in mid-air, and an alert on another screen away from home;
@@ -386,7 +468,7 @@ public final class Performer {
             if moved || !saidIt {
                 face(.right)
                 if let alertText { say(alertText) }
-                takesClicks(true)
+                takesClicks { [weak self] in self?.onAlertClick?() }
                 saidIt = true
             }
             if let waving { await window.play(waving) }

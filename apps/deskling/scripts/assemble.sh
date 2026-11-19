@@ -17,6 +17,10 @@ sed "s/@VERSION@/$version/g" Info.plist.in > "$app/Contents/Info.plist"
 cp Resources/AppIcon.icns Resources/MenuIcon.png "Resources/MenuIcon@2x.png" "$app/Contents/Resources/"
 cp .build/animations/*.json "$app/Contents/Resources/animations/"
 cp -R .build/characters "$app/Contents/Resources/characters"
+# The updater. Its XPC services are only for sandboxed apps, and Deskling is not one.
+mkdir -p "$app/Contents/Frameworks"
+ditto "$bin_dir/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
+rm -rf "$app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices" "$app/Contents/Frameworks/Sparkle.framework/XPCServices"
 # Resource bundles SwiftPM builds for dependencies (lottie-ios ships one).
 find "$bin_dir" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$app/Contents/Resources/" \;
 echo "$app ($version)"

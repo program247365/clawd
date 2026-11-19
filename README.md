@@ -68,8 +68,11 @@ The first time, you pick your Deskling on a character-select screen: arrow keys 
 | **Visits your lock screen** | Turn on "Bring them along to the lock screen" and they keep walking while your Mac is locked. |
 | **Stays out of the way** | They sit above your windows but never take a click, a scroll, or focus, and they step aside for fullscreen apps. |
 | **Fits your screen** | Small, Medium, or Large, from the menu. |
+| **Keeps up to date** | Once a day they check for a new version. When there is one they tell you in their speech bubble; click them to update, and they come back saying so. |
 
-From the menubar you can switch characters, hide them, change their size, turn on Launch at Login, and open Settings (⌘,).
+From the menubar you can switch characters, hide them, change their size, turn on Launch at Login, check for updates, and open Settings (⌘,).
+
+Updates come through [Sparkle](https://sparkle-project.org). The daily check fetches the update feed from GitHub and sends nothing about you or your Mac; every update is signed, and the app refuses one that isn't.
 
 ### About the lock screen visit
 
@@ -150,7 +153,7 @@ xcrun notarytool store-credentials clawd-notary   # the profile keeps its old na
 
 Set `APP_IDENTITY="Developer ID Application: You (TEAMID)"` to sign with your own identity.
 
-`make publish` then uploads that disk image as a GitHub release for the version in `apps/deskling/VERSION` and updates the Homebrew cask from `scripts/deskling.rb.in`, in one commit to the tap. The first Deskling release also renames the cask from `clawd` to `deskling` and records the rename in the tap's `cask_renames.json`, so `brew upgrade` moves existing users across. Pass `NOTES=<file>` for hand-written release notes. The website deploys on its own when `main` changes.
+`make publish` then uploads that disk image as a GitHub release for the version in `apps/deskling/VERSION` and updates the Homebrew cask from `scripts/deskling.rb.in`, in one commit to the tap. The first Deskling release also renames the cask from `clawd` to `deskling` and records the rename in the tap's `cask_renames.json`, so `brew upgrade` moves existing users across. Pass `NOTES=<file>` for hand-written release notes, and `BUBBLE=<file>` with one to three short lines (40 characters at most) that the character says when offering the update. `make publish` signs the disk image with the Sparkle update key in your login keychain and uploads `appcast.xml`, the feed the app reads, with the release. The website deploys on its own when `main` changes.
 
 ## License
 

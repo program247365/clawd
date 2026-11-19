@@ -7,6 +7,8 @@ cask "deskling" do
   desc "Pixel characters that walk your desktop and react to your coding agents"
   homepage "https://deskling.kbr.sh/"
 
+  # The app updates itself (Sparkle); brew upgrade leaves it be unless asked with --greedy.
+  auto_updates true
   depends_on macos: :sonoma
 
   app "Deskling.app"

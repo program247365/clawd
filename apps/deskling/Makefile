@@ -89,6 +89,7 @@ app: animations
 	swift build -c release --product deskling-hook
 	scripts/assemble.sh "$$(swift build -c release --show-bin-path)"
 	codesign --force --sign - dist/Deskling.app/Contents/Helpers/deskling-hook
+	codesign --force --deep --sign - dist/Deskling.app/Contents/Frameworks/Sparkle.framework
 	codesign --force --sign - dist/Deskling.app
 
 run: app

@@ -12,6 +12,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let roster: Roster
     private let agents: AgentListener
     private let picker: CharacterPickerWindowController
+    private let updater: Updater?
     /// The "Waiting on you" section at the top, rebuilt each time the menu opens.
     private var waitingItems: [NSMenuItem] = []
     private var characterItems: [String: NSMenuItem] = [:]
@@ -20,12 +21,13 @@ final class MenuController: NSObject, NSMenuDelegate {
     private var sizeItems: [CharacterSize: NSMenuItem] = [:]
 
     init(performer: Performer, settings: Settings, roster: Roster, agents: AgentListener,
-         picker: CharacterPickerWindowController) {
+         picker: CharacterPickerWindowController, updater: Updater?) {
         self.performer = performer
         self.settings = settings
         self.roster = roster
         self.agents = agents
         self.picker = picker
+        self.updater = updater
         super.init()
 
         showIcon(for: roster.character(id: settings.characterID))
@@ -60,6 +62,11 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(loginItem)
         menu.addItem(.separator())
+        if updater != nil {
+            let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+            check.target = self
+            menu.addItem(check)
+        }
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "About Deskling (v\(AppInfo.version))", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit Deskling", action: #selector(quit), keyEquivalent: "q"))
@@ -149,6 +156,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func dismissAllWaiting() { agents.dismissAll() }
+
+    @objc private func checkForUpdates() { updater?.checkNow() }
 
     @objc private func showAbout() { about.show() }
 

@@ -31,6 +31,12 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/program247365/deskling/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>DG2iFMiFVomtp3p9L0JHNcvh/xuh1bwiAMtYf0jbb+4=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Kevin B. Ridgway</string>
 </dict>

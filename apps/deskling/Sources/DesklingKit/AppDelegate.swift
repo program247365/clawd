@@ -7,6 +7,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lockScreenVisitor: LockScreenVisitor?
     private var agents: AgentListener?
     private var picker: CharacterPickerWindowController?
+    private var updater: Updater?
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         let settings = Settings()
@@ -25,7 +26,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.menu?.showIcon(for: character)
         }
         self.picker = picker
-        menu = MenuController(performer: performer, settings: settings, roster: roster, agents: agents, picker: picker)
+        // A local build with no update feed (such as `swift run`) leaves updating to you.
+        let updater = Updater.isAvailable ? Updater(performer: performer) : nil
+        self.updater = updater
+        menu = MenuController(
+            performer: performer, settings: settings, roster: roster, agents: agents, picker: picker, updater: updater)
         lockScreenVisitor = LockScreenVisitor(window: window, bubble: bubble, settings: settings)
 
         // The first time, you choose who lives on your desktop; they make their entrance once you have.
@@ -37,6 +42,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 performer.start(entrance: true)
             }
         }
+
+        // After an update they say so, once they have made their entrance.
+        if let last = settings.lastRunVersion, last != AppInfo.version {
+            performer.announce(Performer.Announcement(lines: ["Now on Deskling \(AppInfo.version)!"], holdFor: 4))
+        }
+        settings.lastRunVersion = AppInfo.version
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(screenChanged),

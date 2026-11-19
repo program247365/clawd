@@ -73,6 +73,12 @@ public final class Settings {
 
     public static let alertsForAgentsKey = "alertsForAgents"
 
+    /// The version that ran last, so after an update they can tell you what you are on now.
+    public var lastRunVersion: String? {
+        get { defaults.string(forKey: "lastRunVersion") }
+        set { defaults.set(newValue, forKey: "lastRunVersion") }
+    }
+
     public var size: CharacterSize {
         get { defaults.string(forKey: "size").flatMap(CharacterSize.init(rawValue:)) ?? .medium }
         set { defaults.set(newValue.rawValue, forKey: "size") }
