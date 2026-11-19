@@ -5,8 +5,14 @@ description: Use when a change to the Mac app needs testing on a real macOS desk
 
 # Testing Clawd in a macOS VM
 
-The VM is a [Tart](https://tart.run) macOS guest. Everything goes through one script,
-`.claude/skills/vm-testing/vm.sh`, run from the repo root.
+The VM is a [Tart](https://tart.run) macOS guest. Everything goes through one script, `scripts/vm.sh`,
+run from the repo root. What it copies into the guest lives beside it in `scripts/vm/`:
+
+- `scripts/vm/guest/`: the run scripts (`soak-run.sh`, `app-run.sh`). Add new guest scenarios here.
+- `scripts/vm/probes/`: `lock.swift` locks the screen; `watch.swift` logs where his window is.
+- `scripts/vm/soak/`: a harness that plays every act back to back and prints memory per round.
+
+Its own state (ssh key, shared folder) goes in `.vm/`, which is git-ignored.
 
 ## Before you start
 
@@ -20,7 +26,7 @@ The VM is a [Tart](https://tart.run) macOS guest. Everything goes through one sc
 ## The loop
 
 ```sh
-V=.claude/skills/vm-testing/vm.sh
+V=scripts/vm.sh
 $V up                     # clone if needed, boot with a visible window, wait for the desktop
 $V push                   # build the app and probes, copy them to ~/s in the guest
 $V gui open /Users/admin/s/Clawd.app      # run the app the way a user does
