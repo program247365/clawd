@@ -22,7 +22,6 @@
   const characterListeners = new Set();
   const api = {
     live: Boolean(window.lottie),
-    perform() {},
     setCharacter() {},
     character: 'clawd',
     onAct(fn) { listeners.add(fn); },
@@ -39,7 +38,8 @@
   if (!window.lottie) { goStatic(); return; }
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Clawd's acts are the Acts window's buttons, so his part needs no separate manifest.
+  // Clawd's acts come from assets/characters/index.json, like everyone else's; until it arrives
+  // (or if it never does) he has the two that live beside the walk.
   // clawd-walking.json: frames 0–4 stand + lean in, 5–24 step cycle, 25–27 stand.
   // Looping only the step cycle keeps him from sliding while posed still.
   const CLAWD = {
@@ -47,7 +47,7 @@
     name: 'Clawd',
     walkCycle: [5, 25],
     standingFrame: 26,
-    acts: [...document.querySelectorAll('.act')].map(button => button.dataset.act),
+    acts: ['waving', 'looking'],
     url: name => `assets/${TOP_LEVEL.has(name) ? '' : 'acts/'}clawd-${name}.json`,
   };
   // Anyone else comes from assets/characters/index.json, as the Characters window reads it.
@@ -270,7 +270,6 @@
     await new Promise(resolve => setTimeout(resolve, 700));
   }
 
-  let requested = null;
   let walksFirst = true; // after the entrance their first move is a walk from where they landed
   // Each character gets a session; switching starts a new one and the old routine stops.
   let session = 0;
@@ -281,16 +280,6 @@
       const mine = generation;
       backToFloor();
       if (root.hasAttribute('data-hidden')) { await interrupted(); continue; }
-
-      if (requested) {
-        const name = requested;
-        requested = null;
-        const act = await unlessInterrupted(fetchAct(name));
-        // Interrupted while it downloaded: if a newer click replaced it, that one wins; otherwise ask again.
-        if (generation !== mine) { requested = requested || name; continue; }
-        if (act) await perform(act);
-        continue;
-      }
 
       const name = nextAct();
       const loading = fetchAct(name); // downloads while he walks
@@ -330,20 +319,11 @@
     }
   }
 
-  // With reduced motion he stands still; asking for an act shows a still of it.
-  let stillTimer = null;
+  // With reduced motion they stand still.
   function stand(walking) {
     backToFloor();
     announce('standing');
     show(walking, { still: character.standingFrame });
-  }
-  async function showStill(walking, name) {
-    clearTimeout(stillTimer);
-    const act = await fetchAct(name);
-    if (!act) return;
-    announce(name);
-    show(act, { still: Math.round((act.frames - 1) / 2) });
-    stillTimer = setTimeout(() => stand(walking), 4000);
   }
 
   // Resizing clears each canvas. A playing animation repaints on its next frame; a still one never would.
@@ -377,19 +357,6 @@
     }, () => false);
   }
 
-  api.perform = name => {
-    if (!CLAWD.acts.includes(name)) return;
-    // The Acts window is Clawd's: asking for one of his acts brings him back to do it.
-    if (character !== CLAWD) {
-      requested = reducedMotion ? null : name;
-      begin(CLAWD);
-      return;
-    }
-    if (reducedMotion) { if (walkingNow) showStill(walkingNow, name); return; }
-    requested = name;
-    interrupt();
-  };
-
   api.setCharacter = async entry => {
     const next = castMember(entry);
     if (next.id === character.id) return true;
@@ -402,7 +369,6 @@
 
   new MutationObserver(() => {
     // Size or visibility changed: start the routine over from the floor at the new size.
-    // Interrupting right away, not a frame later, keeps an act requested in the same click.
     if (reducedMotion) requestAnimationFrame(() => walkingNow && stand(walkingNow)); else interrupt();
   }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
 
@@ -414,5 +380,12 @@
     if (!reducedMotion) interrupt();
   });
 
-  begin(CLAWD).then(ok => { if (!ok) goStatic(); });
+  fetch('assets/characters/index.json')
+    .then(response => response.json())
+    .then(manifest => {
+      const clawd = manifest.characters.find(entry => entry.builtin);
+      if (clawd && clawd.acts && clawd.acts.length) CLAWD.acts = clawd.acts;
+    })
+    .catch(() => {})
+    .finally(() => begin(CLAWD).then(ok => { if (!ok) goStatic(); }));
 })();

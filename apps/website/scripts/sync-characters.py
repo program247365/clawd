@@ -29,6 +29,13 @@ CLAWD = {
 }
 
 
+def clawd():
+    """Clawd's entry: his acts are the site's own files, assets/acts/clawd-*.json plus the two beside the walk."""
+    acts = sorted(name[len("clawd-"):-len(".json")] for name in os.listdir(os.path.join(SITE, "assets", "acts"))
+                  if name.startswith("clawd-") and name.endswith(".json"))
+    return {**CLAWD, "acts": sorted(acts + ["looking", "waving"])}
+
+
 def drawn_characters():
     for id in sorted(os.listdir(SOURCE)):
         folder = os.path.join(SOURCE, id)
@@ -51,7 +58,7 @@ def drawn_characters():
 
 def expected_files():
     """Every file the site should hold, as {site path: source path or manifest text}."""
-    files, manifest = {}, [CLAWD]
+    files, manifest = {}, [clawd()]
     for id, folder, entry in drawn_characters():
         manifest.append(entry)
         for name in os.listdir(os.path.join(folder, "animations")):

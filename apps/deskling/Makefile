@@ -64,6 +64,7 @@ site-characters: animations
 	mkdir -p .build/stills/clawd ../website/assets/characters/clawd
 	.build/debug/IconTool --frames $(ANIMATIONS) walking .build/stills/clawd >/dev/null
 	sips -Z 220 .build/stills/clawd/frame-026.png --out ../website/assets/characters/clawd/stand.png >/dev/null
+	python3 ../website/scripts/make-pattern.py
 
 # Regenerates the committed icons from the art (walking frame 26, the standing pose).
 icons: animations

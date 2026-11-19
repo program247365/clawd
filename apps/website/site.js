@@ -1,4 +1,4 @@
-// Page chrome: the Deskling menu, the Acts window, copy buttons, the clock.
+// Page chrome: the Deskling menu, copy buttons, the clock.
 (() => {
   const root = document.documentElement;
 
@@ -40,37 +40,14 @@
     });
   }
 
-  // Acts window: click one and he does it.
-  const acts = [...document.querySelectorAll('.act')];
-  const hint = document.getElementById('acts-hint');
-  const clawd = window.Clawd;
-  if (clawd && clawd.live) {
-    for (const act of acts) {
-      act.setAttribute('aria-pressed', 'false');
-      act.addEventListener('click', () => {
-        if (root.hasAttribute('data-hidden')) toggle.click();
-        clawd.perform(act.dataset.act);
-      });
-    }
-    clawd.onAct(name => {
-      for (const act of acts) act.setAttribute('aria-pressed', String(act.dataset.act === name));
-    });
-    // These are Clawd's acts; with someone else on the page, a click brings him back to do one.
-    clawd.onCharacter(character => {
+  // The menu names whoever is on the page.
+  const page = window.Clawd;
+  if (page) {
+    page.onCharacter(character => {
       characterName = character.name;
       labelToggle();
-      hint.textContent = character.id === 'clawd'
-        ? "Click one and he'll do it."
-        : `These are Clawd's. Click one and he'll swap back in to do it.`;
     });
   }
-  // No animation library, or the walk never arrived: the thumbnails still show what he does.
-  function showActsAsStills() {
-    hint.textContent = "The animations didn't load, but here is everything he does.";
-    for (const act of acts) act.disabled = true;
-  }
-  if (!clawd || !clawd.live) showActsAsStills();
-  document.addEventListener('clawd:static', showActsAsStills);
 
   // Copy buttons.
   for (const copy of document.querySelectorAll('.copy')) {
