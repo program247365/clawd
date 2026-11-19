@@ -33,7 +33,7 @@ Clawd appears at the bottom of the screen and his icon appears in the menubar. F
 - Stops to perform one of his acts, and plays every act once before repeating any.
 - Drops in from the top of the screen under a spotlight when the app launches.
 - Stays at the bottom by default. Choose "Let Clawd roam!" in Settings and about one time in four he pops out and reappears somewhere else to perform.
-- Visits your lock screen if you turn on "Make Clawd visit your lock screen" in Settings. This uses private macOS window-server functions, so it is off by default and a macOS update could break it.
+- Visits your lock screen if you turn on "Make Clawd visit your lock screen" in Settings. This uses private macOS window-server functions, so it is off by default and a macOS update could break it. It is confirmed on macOS 27 and untested on earlier versions.
 - Stays above your windows but never takes a click, a scroll, or focus.
 - Stays out of fullscreen apps, the Dock, and Cmd-Tab.
 
