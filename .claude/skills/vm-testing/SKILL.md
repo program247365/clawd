@@ -10,6 +10,7 @@ run from the repo root. What it copies into the guest lives beside it in `script
 
 - `scripts/vm/guest/`: the run scripts (`soak-run.sh`, `app-run.sh`). Add new guest scenarios here.
 - `scripts/vm/probes/`: `lock.swift` locks the screen; `watch.swift` logs where his window is.
+- `scripts/vm/record/`: films the VM window from the host (`vm.sh record`).
 - `scripts/vm/soak/`: a harness that plays every act back to back and prints memory per round.
 
 Its own state (ssh key, shared folder) goes in `.vm/`, which is git-ignored.
@@ -70,9 +71,15 @@ will outlive your tool timeout.
 - **The lock announcement can lag the lock.** On a slow guest `locked=true` appeared 145 seconds
   before `com.apple.screenIsLocked`. He joins on the announcement, so wait for the `EVENT` line
   before judging.
-- **No screenshots.** `screencapture` in the guest fails ("could not create image from display"),
-  and Tart's `--vnc-experimental` crashes Tart (exit 133) on a capture after the display changes.
-  Use `watch.log`, or ask the user to look at the VM window.
+- **Pictures come from the host, not the guest.** `screencapture` in the guest fails ("could not
+  create image from display"), and Tart's `--vnc-experimental` crashes Tart (exit 133). Film the VM
+  window instead: `vm.sh record 60 out.mov` captures that window alone, whatever covers it. Pull a
+  frame with `ffmpeg -ss 5 -i out.mov -frames:v 1 frame.png` and look at it before trusting it.
+- **The guest shows its lock screen right after boot,** even with automatic login and the screen
+  lock turned off. That is the place to film or test the lock screen visit; a desktop recording
+  needs someone to type `admin` in the VM window.
+- **Never reboot through `vm.sh ssh`.** It retries when the connection drops and reboots the guest
+  a second time. Use `vm.sh restart`, then `vm.sh up` to wait for the desktop.
 - **Starting the VM any other way hangs or dies.** A plain background job is killed when the tool
   call returns; a launchd job or `open -a tart.app` hangs on a removable volume. `vm.sh up` uses
   `screen`, then asks the app to come forward, because the window does not appear until it is asked.
