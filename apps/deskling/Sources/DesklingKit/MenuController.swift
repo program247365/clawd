@@ -12,8 +12,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let roster: Roster
     private let agents: AgentListener
     private let picker: CharacterPickerWindowController
-    private let alertItem = NSMenuItem(title: "", action: #selector(dismissAlert), keyEquivalent: "")
-    private let alertSeparator = NSMenuItem.separator()
+    /// The "Waiting on you" section at the top, rebuilt each time the menu opens.
+    private var waitingItems: [NSMenuItem] = []
     private var characterItems: [String: NSMenuItem] = [:]
     private let visibilityItem = NSMenuItem(title: "", action: #selector(toggleVisibility), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -32,9 +32,6 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         let menu = NSMenu()
         menu.delegate = self
-        // Only shown while an agent is waiting on you.
-        menu.addItem(alertItem)
-        menu.addItem(alertSeparator)
         menu.addItem(visibilityItem)
 
         let characterMenu = NSMenu()
@@ -84,10 +81,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         let name = performer.characterName
         visibilityItem.title = performer.isRunning ? "Hide \(name)" : "Show \(name)"
-        let alert = agents.alertMessage
-        alertItem.title = alert.map { "Dismiss: \($0)" } ?? ""
-        alertItem.isHidden = alert == nil
-        alertSeparator.isHidden = alert == nil
+        showWaiting(in: menu)
         let current = roster.character(id: settings.characterID).id
         for (id, item) in characterItems { item.state = id == current ? .on : .off }
         for (size, item) in sizeItems { item.state = size == settings.size ? .on : .off }
@@ -121,7 +115,40 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     @objc private func showPicker() { picker.show() }
 
-    @objc private func dismissAlert() { agents.dismissAlert() }
+    /// One item per waiting session; choosing one dismisses it. Nothing at all when no one is waiting.
+    private func showWaiting(in menu: NSMenu) {
+        for item in waitingItems { menu.removeItem(item) }
+        waitingItems = []
+        let waiting = agents.waiting
+        guard !waiting.isEmpty else { return }
+
+        let header = NSMenuItem(title: "Waiting on you", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        var items = [header]
+        let now = Date()
+        for session in waiting {
+            let item = NSMenuItem(title: session.menuTitle(at: now), action: #selector(dismissWaiting(_:)), keyEquivalent: "")
+            item.representedObject = session.id
+            item.target = self
+            item.toolTip = "Stop waving for this one"
+            items.append(item)
+        }
+        if waiting.count > 1 {
+            let all = NSMenuItem(title: "Dismiss All", action: #selector(dismissAllWaiting), keyEquivalent: "")
+            all.target = self
+            items.append(all)
+        }
+        items.append(.separator())
+        for (index, item) in items.enumerated() { menu.insertItem(item, at: index) }
+        waitingItems = items
+    }
+
+    @objc private func dismissWaiting(_ item: NSMenuItem) {
+        guard let id = item.representedObject as? String else { return }
+        agents.dismiss(id)
+    }
+
+    @objc private func dismissAllWaiting() { agents.dismissAll() }
 
     @objc private func showAbout() { about.show() }
 

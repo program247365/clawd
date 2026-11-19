@@ -10,6 +10,35 @@ public enum AgentReaction: Equatable {
     case clearAlert
 }
 
+/// One agent session that is waiting on you.
+public struct WaitingSession: Equatable, Identifiable {
+    /// The agent and session, e.g. "claude/0b1c…".
+    public let id: String
+    public let agent: String
+    public let project: String
+    public let since: Date
+
+    /// "Claude Code", "Codex", or the agent's own name.
+    public var agentName: String {
+        switch agent {
+        case "claude": "Claude Code"
+        case "codex": "Codex"
+        default: agent.prefix(1).uppercased() + agent.dropFirst()
+        }
+    }
+
+    /// "Claude Code · api · 3 min": the minutes tell apart two sessions in the same folder.
+    public func menuTitle(at now: Date) -> String {
+        let minutes = Int(now.timeIntervalSince(since) / 60)
+        let waited = switch minutes {
+        case ..<1: "just now"
+        case ..<60: "\(minutes) min"
+        default: "\(minutes / 60) hr"
+        }
+        return "\(agentName) · \(project) · \(waited)"
+    }
+}
+
 /// Keeps track of which agent sessions are waiting on you and turns events into reactions,
 /// sparingly: a character that acts out every tool call is noise.
 public struct AgentDesk {
@@ -18,8 +47,11 @@ public struct AgentDesk {
     /// Shortest gap between two celebrations.
     public static let celebrateGap: TimeInterval = 10
 
-    /// Projects of the sessions waiting on you, by agent and session.
-    public private(set) var waiting: [String: String] = [:]
+    /// The bubble names the waiting projects when they fit in this many characters, and counts them otherwise.
+    public static let longestNamedMessage = 30
+
+    /// The sessions waiting on you, longest-waiting first.
+    public private(set) var waiting: [WaitingSession] = []
     private var lastAmbient: Date?
     private var lastCelebration: Date?
 
@@ -31,14 +63,15 @@ public struct AgentDesk {
 
         if event.kind == .needsInput {
             guard alerts else { return [] }
-            waiting[key] = event.project
+            // Asking again keeps its place in line.
+            if !waiting.contains(where: { $0.id == key }) {
+                waiting.append(WaitingSession(id: key, agent: event.agent, project: event.project, since: now))
+            }
             return [.alert(alertMessage)]
         }
 
         // Anything else from a waiting session means you answered it.
-        if waiting.removeValue(forKey: key) != nil {
-            reactions.append(waiting.isEmpty ? .clearAlert : .alert(alertMessage))
-        }
+        if let answered = dismiss(key) { reactions.append(answered) }
         // While someone is waiting, he stays put and keeps waving.
         guard waiting.isEmpty else { return reactions }
 
@@ -58,16 +91,32 @@ public struct AgentDesk {
         return reactions
     }
 
-    /// Forgets every waiting session, as when you dismiss the alert from the menu.
+    /// Forgets every waiting session, as when you dismiss them all from the menu.
     public mutating func dismissAll() {
         waiting.removeAll()
     }
 
+    /// Forgets one waiting session. Nil if it was not waiting; otherwise the alert as it now stands.
+    public mutating func dismiss(_ id: String) -> AgentReaction? {
+        guard let index = waiting.firstIndex(where: { $0.id == id }) else { return nil }
+        waiting.remove(at: index)
+        return waiting.isEmpty ? .clearAlert : .alert(alertMessage)
+    }
+
+    /// "api needs you", "api and clawd need you", or "3 agents need you" when names would not fit.
     public var alertMessage: String {
-        switch waiting.count {
-        case 0: ""
-        case 1: "\(waiting.values.first!) needs you"
-        default: "\(waiting.count) agents need you"
+        let projects = waiting.map(\.project)
+        switch projects.count {
+        case 0:
+            return ""
+        case 1:
+            return "\(projects[0]) needs you"
+        case 2 where projects[0] != projects[1]:
+            let named = "\(projects[0]) and \(projects[1]) need you"
+            if named.count <= Self.longestNamedMessage { return named }
+            fallthrough
+        default:
+            return "\(projects.count) agents need you"
         }
     }
 

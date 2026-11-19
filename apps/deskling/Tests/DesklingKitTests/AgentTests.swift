@@ -58,12 +58,59 @@ final class AgentDeskTests: XCTestCase {
     func testWaitingSessionsAlertUntilAnswered() {
         var desk = AgentDesk()
         XCTAssertEqual(desk.handle(event(.needsInput), at: start), [.alert("clawd needs you")])
-        XCTAssertEqual(desk.handle(event(.needsInput, session: "s2", project: "api"), at: start), [.alert("2 agents need you")])
+        XCTAssertEqual(desk.handle(event(.needsInput, session: "s2", project: "api"), at: start), [.alert("clawd and api need you")])
         XCTAssertEqual(desk.handle(event(.toolFinished), at: start), [.alert("api needs you")])
         // No ambient act while someone is still waiting.
         XCTAssertEqual(desk.handle(event(.toolStarted, tool: "Bash"), at: start), [])
         // Answering the last one clears the alert, and he goes straight to acting out the new prompt.
         XCTAssertEqual(desk.handle(event(.promptSubmitted, session: "s2"), at: start), [.clearAlert, .perform(.think, saying: nil)])
+    }
+
+    func testTheBubbleNamesWhoIsWaitingWhenItFits() {
+        var desk = AgentDesk()
+        _ = desk.handle(event(.needsInput, session: "a", project: "api"), at: start)
+        _ = desk.handle(event(.needsInput, session: "b", project: "api"), at: start)
+        XCTAssertEqual(desk.alertMessage, "2 agents need you", "two sessions in one folder are counted, not named twice")
+
+        var long = AgentDesk()
+        _ = long.handle(event(.needsInput, session: "a", project: "a-very-long-project-name"), at: start)
+        _ = long.handle(event(.needsInput, session: "b", project: "another-one"), at: start)
+        XCTAssertEqual(long.alertMessage, "2 agents need you")
+
+        _ = desk.handle(event(.needsInput, session: "c", project: "web"), at: start)
+        XCTAssertEqual(desk.alertMessage, "3 agents need you")
+    }
+
+    func testDismissingOneKeepsTheOthersWaitingInOrder() throws {
+        var desk = AgentDesk()
+        _ = desk.handle(event(.needsInput, session: "a", project: "api"), at: start)
+        _ = desk.handle(AgentEvent(agent: "codex", kind: .needsInput, session: "b", project: "web"), at: start.addingTimeInterval(60))
+        _ = desk.handle(event(.needsInput, session: "c", project: "docs"), at: start.addingTimeInterval(120))
+        XCTAssertEqual(desk.waiting.map(\.project), ["api", "web", "docs"])
+
+        XCTAssertEqual(desk.dismiss("codex/b"), .alert("api and docs need you"))
+        XCTAssertEqual(desk.waiting.map(\.id), ["claude/a", "claude/c"])
+        XCTAssertNil(desk.dismiss("codex/b"), "already gone")
+        XCTAssertEqual(desk.dismiss("claude/a"), .alert("docs needs you"))
+        XCTAssertEqual(desk.dismiss("claude/c"), .clearAlert)
+    }
+
+    func testAskingAgainKeepsItsPlaceInLine() {
+        var desk = AgentDesk()
+        _ = desk.handle(event(.needsInput, session: "a", project: "api"), at: start)
+        _ = desk.handle(event(.needsInput, session: "b", project: "web"), at: start.addingTimeInterval(30))
+        _ = desk.handle(event(.needsInput, session: "a", project: "api"), at: start.addingTimeInterval(90))
+        XCTAssertEqual(desk.waiting.map(\.id), ["claude/a", "claude/b"])
+        XCTAssertEqual(desk.waiting[0].since, start)
+    }
+
+    func testMenuTitlesNameTheAgentProjectAndWait() {
+        let session = WaitingSession(id: "codex/x", agent: "codex", project: "api", since: start)
+        XCTAssertEqual(session.menuTitle(at: start.addingTimeInterval(20)), "Codex · api · just now")
+        XCTAssertEqual(session.menuTitle(at: start.addingTimeInterval(185)), "Codex · api · 3 min")
+        XCTAssertEqual(session.menuTitle(at: start.addingTimeInterval(7300)), "Codex · api · 2 hr")
+        XCTAssertEqual(WaitingSession(id: "claude/x", agent: "claude", project: "web", since: start).agentName, "Claude Code")
+        XCTAssertEqual(WaitingSession(id: "pi/x", agent: "pi", project: "web", since: start).agentName, "Pi")
     }
 
     func testAmbientActsAreSparing() {

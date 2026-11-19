@@ -20,8 +20,8 @@ public final class AgentListener {
         }
     }
 
-    /// The alert being shown, if any, for the menu.
-    public var alertMessage: String? { desk.waiting.isEmpty ? nil : desk.alertMessage }
+    /// The sessions waiting on you, longest-waiting first, for the menu.
+    public var waiting: [WaitingSession] { desk.waiting }
 
     public func handle(_ event: AgentEvent, at now: Date = Date()) {
         let reactions = desk.handle(
@@ -35,8 +35,17 @@ public final class AgentListener {
         }
     }
 
-    public func dismissAlert() {
+    public func dismissAll() {
         desk.dismissAll()
         performer.clearAlert()
+    }
+
+    /// Stops waving for one session; the others keep their place.
+    public func dismiss(_ id: String) {
+        switch desk.dismiss(id) {
+        case let .alert(text): performer.alert(text)
+        case .clearAlert: performer.clearAlert()
+        default: break
+        }
     }
 }
