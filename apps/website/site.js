@@ -1,4 +1,4 @@
-// Page chrome: the Clawd menu, the Acts window, copy buttons, the clock.
+// Page chrome: the Deskling menu, the Acts window, copy buttons, the clock.
 (() => {
   const root = document.documentElement;
 
@@ -92,7 +92,7 @@
   const isTouchApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Mac/.test(platform) && navigator.maxTouchPoints > 1);
   if (!/Mac/i.test(platform) || isTouchApple) {
     document.getElementById('platform-note').textContent =
-      "You're not on a Mac right now. Clawd is a Mac app and needs macOS 14 or later.";
+      "You're not on a Mac right now. Deskling is a Mac app and needs macOS 14 or later.";
   }
 
   // The lock screen clip plays while it's on screen. With reduced motion it waits to be asked.

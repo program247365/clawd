@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clawd, on your desktop (unofficial fan app)</title>
-<meta name="description" content="An unofficial, free, open-source Mac menubar app that lets Clawd walk along the bottom of your screen. Clawd is Anthropic's character.">
+<title>Deskling: little pixel friends for your desktop (unofficial fan app)</title>
+<meta name="description" content="Deskling is a free, open-source Mac menubar app. Pick a little pixel character and they walk along the bottom of your screen, and come and find you when your coding agent needs you. Clawd is Anthropic's character; this is an unofficial fan project.">
 <meta name="theme-color" content="#1d5a66">
 <link rel="icon" href="assets/app-icon.png">
 <link rel="preload" href="assets/fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
@@ -15,7 +15,7 @@
 
 <header class="menubar">
   <nav class="menubar-left" aria-label="Sections">
-    <a class="app-name" href="#install">Clawd</a>
+    <a class="app-name" href="#install">Deskling</a>
     <a href="#characters">Characters</a>
     <a href="#acts">Acts</a>
     <a href="#readme">Read Me</a>
@@ -26,7 +26,7 @@
     <span class="status" id="clawd-status" aria-hidden="true"></span>
     <div class="menu">
       <button type="button" class="menu-button" id="clawd-menu-button" aria-expanded="false" aria-controls="clawd-menu">
-        <svg viewBox="0 0 24 16" width="24" height="16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" d="M4 0h16v4h4v4h-4v4h-2v4h-2v-4h-2v4h-2v-4h-2v4H8v-4H6v4H4v-4V8H0V4h4V0zm2 2v2h2V2H6zm10 0v2h2V2h-2z"/></svg><span class="visually-hidden">Clawd menu</span>
+        <svg viewBox="0 0 24 16" width="24" height="16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" d="M4 0h16v4h4v4h-4v4h-2v4h-2v-4h-2v4h-2v-4h-2v4H8v-4H6v4H4v-4V8H0V4h4V0zm2 2v2h2V2H6zm10 0v2h2V2h-2z"/></svg><span class="visually-hidden">Deskling menu</span>
       </button>
       <div class="menu-panel" id="clawd-menu" hidden>
         <button type="button" id="toggle-clawd">Hide Clawd</button>
@@ -36,7 +36,7 @@
           <button type="button" data-size="medium" aria-pressed="true">Medium</button>
           <button type="button" data-size="large" aria-pressed="false">Large</button>
         </div>
-        <a href="#about">About Clawd</a>
+        <a href="#about">About Deskling</a>
       </div>
     </div>
     <time class="clock" id="clock" aria-hidden="true"></time>
@@ -46,10 +46,10 @@
 <main>
   <div class="desk-row">
   <section class="window window-hero" id="install" aria-labelledby="hero-title">
-    <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title">Clawd</span></div>
+    <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title">Deskling</span></div>
     <div class="window-body">
-      <h1 id="hero-title">Clawd, on your desktop.</h1>
-      <p class="lede">A tiny Mac app that lets Clawd wander along the bottom of your screen while you work, the way he's doing down there right now. Go on, click straight through him.</p>
+      <h1 id="hero-title">Little friends for your desktop.</h1>
+      <p class="lede">Deskling is a tiny Mac app that lets a pixel friend wander along the bottom of your screen while you work, the way one is down there right now. When your coding agent needs you, they come and tell you. Go on, click straight through them.</p>
       <div class="install">
         <a class="download" href="https://github.com/program247365/clawd/releases/latest/download/Deskling.dmg">Download for Mac <small>Free. macOS 14 or later.</small></a>
         <div class="brew">
@@ -150,16 +150,19 @@
   <section class="window window-readme" id="readme" aria-labelledby="readme-title">
     <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title" id="readme-title">Read Me</span></div>
     <div class="window-body">
-      <p>I wanted Clawd to keep me company outside the terminal, so I made him a home on the desktop. It's free, it's open source, and it's just me.</p>
+      <p>I wanted Clawd to keep me company outside the terminal, so I made him a home on the desktop. Then he got friends. It's free, it's open source, and it's just me.</p>
       <ul class="facts">
-        <li>He makes an entrance. Open the app and he drops in under a spotlight, lands, and gives you a wave.</li>
-        <li>He keeps to the bottom of your screen, stopping to fish or juggle. Flip a setting and he'll roam the whole thing.</li>
-        <li>He'll visit your lock screen, if you invite him. It's a trick macOS doesn't officially offer, so it's off until you ask. Confirmed on macOS 26 and 27; on older versions he may not find a way in.</li>
-        <li>He lives in your menubar. No Dock icon, no windows.</li>
-        <li>He never takes a click, a scroll, or a keystroke.</li>
-        <li>He steps aside for fullscreen apps.</li>
-        <li>He comes in Small, Medium, and Large. Try the menu up top.</li>
-        <li>He's light: about 15 MB of memory.</li>
+        <li>You pick who moves in. Clawd, Octo, Minx, Sol, or Luna, and you can switch any time from the menubar.</li>
+        <li>They make an entrance. Open the app and your pick drops in under a spotlight, lands, and gives you a wave.</li>
+        <li>They keep to the bottom of your screen, stopping to do their thing: Clawd fishes, Minx leaps onto a pumpkin, Sol sets and rises again. Flip a setting and they'll roam the whole thing.</li>
+        <li>They notice you. Bring the cursor close and they stop, turn, and look up at it.</li>
+        <li>They keep an eye on your coding agents. Connect Claude Code or Codex and they act out what the agent is doing, cheer when it finishes, and walk over to wave when it needs you.</li>
+        <li>They'll visit your lock screen, if you invite them. It's a trick macOS doesn't officially offer, so it's off until you ask. Confirmed on macOS 26 and 27; on older versions they may not find a way in.</li>
+        <li>They live in your menubar. No Dock icon, no windows.</li>
+        <li>They never take a click, a scroll, or a keystroke.</li>
+        <li>They step aside for fullscreen apps.</li>
+        <li>They come in Small, Medium, and Large. Try the menu up top.</li>
+        <li>They're light: about 20 MB of memory.</li>
       </ul>
       <figure class="memory">
         <svg viewBox="0 0 400 150" role="img" aria-labelledby="memory-title">
@@ -177,12 +180,12 @@
   </section>
 
   <section class="window window-about" id="about" aria-labelledby="about-title">
-    <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title">About Clawd</span></div>
+    <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title">About Deskling</span></div>
     <div class="window-body">
       <div class="about-card">
         <img src="assets/app-icon.png" width="88" height="88" alt="">
-        <h2 id="about-title">Clawd</h2>
-        <p>Clawd, on your desktop.</p>
+        <h2 id="about-title">Deskling</h2>
+        <p>Little pixel friends for your desktop.</p>
       </div>
       <ul class="about-links">
         <li><a href="https://github.com/program247365/clawd" target="_blank" rel="noopener">Source on GitHub</a></li>
@@ -202,7 +205,7 @@
 </main>
 
 <nav class="dock" aria-label="Dock">
-  <a href="#install" title="Install"><img src="assets/app-icon.png" width="52" height="52" alt="Install Clawd"></a>
+  <a href="#install" title="Install"><img src="assets/app-icon.png" width="52" height="52" alt="Install Deskling"></a>
   <a href="#acts" title="Acts"><svg viewBox="0 0 52 52" role="img" aria-label="Acts"><path d="M6 14a4 4 0 0 1 4-4h10l5 5h17a4 4 0 0 1 4 4v19a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="#7cc4d4"/><path d="M6 20h40v18a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="#a8dbe6"/></svg></a>
   <a href="#readme" title="Read Me"><svg viewBox="0 0 52 52" role="img" aria-label="Read Me"><path d="M12 6h20l10 10v26a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4z" fill="#fff"/><path d="M32 6l10 10H32z" fill="#cfd8da"/><path d="M15 24h22M15 30h22M15 36h14" stroke="#141413" stroke-width="2.5" stroke-linecap="round"/></svg></a>
   <a href="https://github.com/program247365/clawd" target="_blank" rel="noopener" title="Source"><svg viewBox="0 0 52 52" role="img" aria-label="Source on GitHub"><rect x="6" y="8" width="40" height="36" rx="6" fill="#141413"/><path d="M21 19l-7 7 7 7M31 19l7 7-7 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
