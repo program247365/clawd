@@ -215,6 +215,8 @@ public final class Performer {
             await window.play(act)
             if Task.isCancelled { return }
         }
+        // The previous act has been dropped by now; give its memory back rather than holding it all day.
+        Memory.returnUnused()
     }
 
     /// The standing pose at the end of the walking animation.
