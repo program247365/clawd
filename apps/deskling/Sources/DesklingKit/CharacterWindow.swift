@@ -7,6 +7,36 @@ private final class PassivePanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+/// Takes clicks, and shows the pointing hand, only while it has something to do with them.
+class ClickableView: NSView {
+    var onClick: (() -> Void)? {
+        didSet { window?.ignoresMouseEvents = onClick == nil; if onClick == nil { NSCursor.arrow.set() } }
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let onClick else { return super.mouseDown(with: event) }
+        NSCursor.arrow.set()
+        onClick()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        if onClick != nil { NSCursor.pointingHand.set() }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        if onClick != nil { NSCursor.arrow.set() }
+    }
+}
+
 /// A small transparent, click-through window exactly Clawd's size. Moving Clawd means moving this window.
 @MainActor
 public final class CharacterWindow {
@@ -31,7 +61,7 @@ public final class CharacterWindow {
         panel.isReleasedWhenClosed = false
         panel.isExcludedFromWindowsMenu = true
 
-        let container = NSView(frame: CGRect(origin: .zero, size: size))
+        let container = ClickableView(frame: CGRect(origin: .zero, size: size))
         container.wantsLayer = true
         animationView = LottieAnimationView(configuration: FrameRenderer.configuration)
         animationView.frame = container.bounds
@@ -39,6 +69,12 @@ public final class CharacterWindow {
         animationView.contentMode = .scaleAspectFit
         container.addSubview(animationView)
         panel.contentView = container
+    }
+
+    /// Set while a click on him should do something; nil lets clicks pass through, as they usually do.
+    public var onClick: (() -> Void)? {
+        get { (panel.contentView as? ClickableView)?.onClick }
+        set { (panel.contentView as? ClickableView)?.onClick = newValue }
     }
 
     public var origin: CGPoint {

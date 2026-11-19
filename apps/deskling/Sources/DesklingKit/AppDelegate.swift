@@ -14,8 +14,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let roster = Roster(clawdDirectory: Self.resource("animations", override: "DESKLING_ANIMATIONS"),
                             charactersDirectory: Self.resource("characters", override: "DESKLING_CHARACTERS"))
         let window = CharacterWindow(size: settings.size.size)
+        let bubble = SpeechBubble()
         let performer = Performer(
-            character: roster.character(id: settings.characterID), window: window, settings: settings)
+            character: roster.character(id: settings.characterID), window: window, bubble: bubble, settings: settings)
         self.performer = performer
         let agents = AgentListener(performer: performer, settings: settings)
         self.agents = agents
@@ -25,7 +26,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.picker = picker
         menu = MenuController(performer: performer, settings: settings, roster: roster, agents: agents, picker: picker)
-        lockScreenVisitor = LockScreenVisitor(window: window, settings: settings)
+        lockScreenVisitor = LockScreenVisitor(window: window, bubble: bubble, settings: settings)
 
         // The first time, you choose who lives on your desktop; they make their entrance once you have.
         if settings.hasChosenCharacter {

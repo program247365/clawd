@@ -13,13 +13,29 @@ public struct AgentEvent: Equatable, Sendable {
     /// The last component of the working directory, e.g. "clawd".
     public let project: String
     public let tool: String?
+    /// Where the agent is running, so clicking the character can take you there. Only sent with `needsInput`.
+    public var origin: Origin?
 
-    public init(agent: String, kind: Kind, session: String, project: String, tool: String? = nil) {
+    /// The processes the hook ran under, nearest first, and the app the agent's shell was started from.
+    /// Enough for the app to find the terminal or editor; nothing about what the agent is doing.
+    public struct Origin: Equatable, Sendable {
+        public let processes: [Int32]
+        /// macOS's `__CFBundleIdentifier` for the shell, e.g. "com.apple.Terminal". Survives tmux, which breaks the process chain.
+        public let bundleID: String?
+
+        public init(processes: [Int32], bundleID: String?) {
+            self.processes = processes
+            self.bundleID = bundleID
+        }
+    }
+
+    public init(agent: String, kind: Kind, session: String, project: String, tool: String? = nil, origin: Origin? = nil) {
         self.agent = agent
         self.kind = kind
         self.session = session
         self.project = project
         self.tool = tool
+        self.origin = origin
     }
 
     /// The name the hook posts on and the app listens for. `DESKLING_EVENT_NAME` replaces it, so tests can
@@ -31,6 +47,10 @@ public struct AgentEvent: Equatable, Sendable {
     public var userInfo: [String: String] {
         var info = ["agent": agent, "kind": kind.rawValue, "session": session, "project": project]
         info["tool"] = tool
+        if let origin {
+            info["processes"] = origin.processes.map(String.init).joined(separator: ",")
+            info["bundleID"] = origin.bundleID
+        }
         return info
     }
 
@@ -41,7 +61,10 @@ public struct AgentEvent: Equatable, Sendable {
               let session = info["session"] as? String,
               let project = info["project"] as? String
         else { return nil }
-        self.init(agent: agent, kind: kind, session: session, project: project, tool: info["tool"] as? String)
+        let processes = (info["processes"] as? String)?.split(separator: ",").compactMap { Int32($0) }
+        let bundleID = info["bundleID"] as? String
+        let origin = processes == nil && bundleID == nil ? nil : Origin(processes: processes ?? [], bundleID: bundleID)
+        self.init(agent: agent, kind: kind, session: session, project: project, tool: info["tool"] as? String, origin: origin)
     }
 
     /// A hook's stdin JSON. Claude Code and Codex share the format: `hook_event_name`, `session_id`,

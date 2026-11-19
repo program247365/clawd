@@ -52,7 +52,7 @@ public final class Performer {
     private let window: CharacterWindow
     private let settings: Settings
     private let ticker = Ticker()
-    private let bubble = SpeechBubble()
+    private let bubble: SpeechBubble
     private var queue: ActQueue
     private var rng = SystemRandomNumberGenerator()
     private var loop: Task<Void, Never>?
@@ -71,6 +71,8 @@ public final class Performer {
     private var mustWalkNext = false
     /// What he is telling you while an agent waits on you; he keeps waving until it is cleared.
     public private(set) var alertText: String?
+    /// Called when you click him, or his bubble, while he waves for an agent.
+    public var onAlertClick: (() -> Void)?
     private let visibleFrame: () -> CGRect?
     private let alertFrame: () -> CGRect?
     private let cursorLocation: () -> CGPoint
@@ -78,6 +80,8 @@ public final class Performer {
 
     private var walking: CharacterAnimation?
     private var looking: CharacterAnimation?
+    /// Where the top of his head is in his standing pose, as a fraction of his window's height.
+    private var headTop: CGFloat?
     private var cursorTimer: Timer?
     private var watchStarted = Date.distantPast
     private var cursorLastNear = Date.distantPast
@@ -90,7 +94,7 @@ public final class Performer {
     /// he comes to when an agent needs you: by default the screen the cursor is on, so you see him.
     /// `idleTime` is how long since you last touched the keyboard, mouse, or trackpad.
     public init(
-        character: Character, window: CharacterWindow, settings: Settings,
+        character: Character, window: CharacterWindow, bubble: SpeechBubble? = nil, settings: Settings,
         visibleFrame: @escaping () -> CGRect? = { NSScreen.screens.first?.visibleFrame },
         alertFrame: @escaping () -> CGRect? = { MainActor.assumeIsolated { Performer.cursorScreenFrame() } },
         cursorLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
@@ -99,6 +103,7 @@ public final class Performer {
         self.character = character
         catalog = character.catalog
         self.window = window
+        self.bubble = bubble ?? SpeechBubble()
         self.settings = settings
         self.visibleFrame = visibleFrame
         self.alertFrame = alertFrame
@@ -166,6 +171,7 @@ public final class Performer {
         queue = ActQueue(names: newCharacter.routineActs)
         walking = nil
         looking = nil
+        headTop = nil
         refresh()
     }
 
@@ -217,6 +223,14 @@ public final class Performer {
         ticker.stop()
         window.stopAnimation()
         bubble.hide()
+        takesClicks(false)
+    }
+
+    /// He only ever takes a click while waving for an agent; the rest of the time clicks pass through him.
+    private func takesClicks(_ on: Bool) {
+        let click: (() -> Void)? = on ? { [weak self] in self?.onAlertClick?() } : nil
+        window.onClick = click
+        bubble.onClick = click
     }
 
     /// Stops what he is doing, runs `body`, then carries on with the routine or the alert.
@@ -372,6 +386,7 @@ public final class Performer {
             if moved || !saidIt {
                 face(.right)
                 if let alertText { say(alertText) }
+                takesClicks(true)
                 saidIt = true
             }
             if let waving { await window.play(waving) }
@@ -400,9 +415,21 @@ public final class Performer {
         return true
     }
 
+    /// Space between his head and the bubble's tail, as a fraction of his window's height.
+    static let bubbleGap: CGFloat = 0.1
+
+    /// Puts `text` just over his head. His window has room above him for acts that reach up, so the
+    /// bubble goes by where the art actually stops, not by the top of the window.
     private func say(_ text: String) {
         guard let screen = stage?.visibleFrame ?? visibleFrame() else { return }
-        bubble.show(text, above: window.frame, within: screen)
+        if headTop == nil, let walking = loadWalking(),
+           let image = FrameRenderer.render(walking.animation, frame: character.standingFrame, pixelSize: CGSize(width: 275, height: 185)) {
+            headTop = FrameRenderer.drawnTop(of: image)
+        }
+        var head = window.frame
+        // A little air between the tail and his head, in proportion to his size, so a wave does not touch it.
+        head.size.height *= min((headTop ?? 1) + Self.bubbleGap, 1)
+        bubble.show(text, above: head, within: screen)
     }
 
     // MARK: Cursor

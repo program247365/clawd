@@ -17,6 +17,8 @@ public struct WaitingSession: Equatable, Identifiable {
     public let agent: String
     public let project: String
     public let since: Date
+    /// Where it runs, if the hook could tell.
+    public var origin: AgentEvent.Origin? = nil
 
     /// "Claude Code", "Codex", or the agent's own name.
     public var agentName: String {
@@ -65,7 +67,7 @@ public struct AgentDesk {
             guard alerts else { return [] }
             // Asking again keeps its place in line.
             if !waiting.contains(where: { $0.id == key }) {
-                waiting.append(WaitingSession(id: key, agent: event.agent, project: event.project, since: now))
+                waiting.append(WaitingSession(id: key, agent: event.agent, project: event.project, since: now, origin: event.origin))
             }
             return [.alert(alertMessage)]
         }

@@ -12,6 +12,7 @@ public final class AgentListener {
     public init(performer: Performer, settings: Settings) {
         self.performer = performer
         self.settings = settings
+        performer.onAlertClick = { [weak self] in self?.goToWaiting() }
         observer = DistributedNotificationCenter.default().addObserver(
             forName: AgentEvent.notificationName, object: nil, queue: .main
         ) { [weak self] notification in
@@ -32,6 +33,17 @@ public final class AgentListener {
             case let .alert(text): performer.alert(text)
             case .clearAlert: performer.clearAlert()
             }
+        }
+    }
+
+    /// Takes you to the agent that has waited longest. If there is nowhere to take you, the click
+    /// means "seen it" and he stops waving for that one.
+    public func goToWaiting() {
+        guard let session = desk.waiting.first else { return }
+        if let app = AgentApp.find(session.origin) {
+            AgentApp.bringForward(app)
+        } else {
+            dismiss(session.id)
         }
     }
 

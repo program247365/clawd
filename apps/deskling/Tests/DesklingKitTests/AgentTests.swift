@@ -46,6 +46,16 @@ final class AgentEventTests: XCTestCase {
         XCTAssertEqual(AgentEvent(userInfo: event.userInfo), event)
         XCTAssertNil(AgentEvent(userInfo: ["agent": "x", "kind": "nonsense", "session": "a", "project": "b"]))
     }
+
+    func testWhereAWaitingAgentRunsRoundTripsAndIsKept() {
+        let origin = AgentEvent.Origin(processes: [412, 77, 9], bundleID: "com.mitchellh.ghostty")
+        let event = AgentEvent(agent: "claude", kind: .needsInput, session: "a", project: "api", origin: origin)
+        XCTAssertEqual(AgentEvent(userInfo: event.userInfo), event)
+
+        var desk = AgentDesk()
+        _ = desk.handle(event, at: Date())
+        XCTAssertEqual(desk.waiting.first?.origin, origin)
+    }
 }
 
 final class AgentDeskTests: XCTestCase {
@@ -272,6 +282,24 @@ final class PerformerAgentTests: XCTestCase {
         return (performer, window)
     }
 
+    func testHeTakesClicksOnlyWhileWaving() async throws {
+        let (performer, window) = makePerformer()
+        defer { performer.stop() }
+        var clicks = 0
+        performer.onAlertClick = { clicks += 1 }
+        performer.start()
+        XCTAssertNil(window.onClick, "clicks pass through him on an ordinary day")
+
+        performer.alert("api needs you")
+        try await Task.sleep(for: .milliseconds(700))
+        let click = try XCTUnwrap(window.onClick)
+        click()
+        XCTAssertEqual(clicks, 1)
+
+        performer.clearAlert()
+        XCTAssertNil(window.onClick)
+    }
+
     func testAlertBringsHimToTheMiddleUntilCleared() async throws {
         let (performer, window) = makePerformer()
         defer { performer.stop() }
@@ -318,7 +346,12 @@ final class ClawdHookTests: XCTestCase {
             forName: Notification.Name(channel), object: nil, queue: .main
         ) { notification in
             guard let event = AgentEvent(userInfo: notification.userInfo), event.session == session else { return }
-            XCTAssertEqual(event, AgentEvent(agent: "codex", kind: .needsInput, session: session, project: "api"))
+            var withoutOrigin = event
+            withoutOrigin.origin = nil
+            XCTAssertEqual(withoutOrigin, AgentEvent(agent: "codex", kind: .needsInput, session: session, project: "api"))
+            // The test runner started the hook, so it is the nearest process above it.
+            XCTAssertEqual(event.origin?.processes.first, ProcessInfo.processInfo.processIdentifier)
+            XCTAssertEqual(event.origin?.bundleID, "com.example.terminal")
             received.fulfill()
         }
         defer { DistributedNotificationCenter.default().removeObserver(observer) }
@@ -326,7 +359,7 @@ final class ClawdHookTests: XCTestCase {
         let process = Process()
         process.executableURL = binary
         process.arguments = ["--agent", "codex"]
-        process.environment = ["DESKLING_EVENT_NAME": channel]
+        process.environment = ["DESKLING_EVENT_NAME": channel, "__CFBundleIdentifier": "com.example.terminal"]
         let input = Pipe()
         let output = Pipe()
         process.standardInput = input

@@ -1,7 +1,7 @@
 import AppKit
 
 /// A pixel-edged bubble drawn in the art's own colors: cream inside, near-black outline.
-private final class BubbleView: NSView {
+private final class BubbleView: ClickableView {
     var text = "" { didSet { needsDisplay = true } }
     static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
     /// One "pixel" of the outline and tail.
@@ -47,7 +47,7 @@ private final class BubbleView: NSView {
     }
 }
 
-/// Words over his head. Like him, it never takes a click or focus.
+/// Words over his head. Like him, it never takes focus, and takes a click only when given `onClick`.
 @MainActor
 public final class SpeechBubble {
     private let panel: NSPanel
@@ -70,15 +70,34 @@ public final class SpeechBubble {
     public var isVisible: Bool { panel.isVisible }
     public var text: String { view.text }
 
-    /// Shows `text` centred just above `frame`, kept on `screen`.
+    /// The window server's number for the bubble's window, once it has been shown.
+    public var windowNumber: Int { panel.windowNumber }
+
+    /// Called each time the bubble is shown.
+    public var didShow: (() -> Void)?
+
+    /// Puts the bubble back among the ordinary desktop windows after it has been somewhere else.
+    public func rejoinDesktop() {
+        guard panel.isVisible else { return }
+        panel.orderOut(nil)
+        panel.orderFrontRegardless()
+    }
+
+    public var onClick: (() -> Void)? {
+        get { view.onClick }
+        set { view.onClick = newValue }
+    }
+
+    /// Shows `text` centred just above `frame`, its tail touching the top, kept on `screen`.
     public func show(_ text: String, above frame: CGRect, within screen: CGRect) {
         view.text = text
         let size = BubbleView.size(for: text)
-        var origin = CGPoint(x: frame.midX - size.width / 2, y: frame.maxY - frame.height * 0.1)
+        var origin = CGPoint(x: frame.midX - size.width / 2, y: frame.maxY + BubbleView.pixel)
         origin.x = min(max(origin.x, screen.minX), screen.maxX - size.width)
         origin.y = min(origin.y, screen.maxY - size.height)
         panel.setFrame(CGRect(origin: origin, size: size), display: true)
         panel.orderFrontRegardless()
+        didShow?()
     }
 
     public func hide() {

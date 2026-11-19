@@ -1,6 +1,6 @@
 import AppKit
 
-/// Lets Clawd's window show on the lock screen.
+/// Lets Clawd's window, and his speech bubble, show on the lock screen.
 ///
 /// macOS has no public way to do this. The window server keeps windows in "spaces", and a space given a
 /// high enough level is drawn above the lock screen. Creating one and moving a window into it takes
@@ -51,6 +51,7 @@ public final class LockScreenVisitor {
     private static let lockScreenLevel: Int32 = 400
 
     private let window: CharacterWindow
+    private let bubble: SpeechBubble?
     private let settings: Settings
     private var space: UInt64?
     /// True while his window is in the lock screen's layer.
@@ -62,11 +63,12 @@ public final class LockScreenVisitor {
     /// `isLocked` reports whether the Mac is locked right now; by default it asks the system.
     /// The two names are the system's own announcements that the screen has locked and unlocked.
     public init(
-        window: CharacterWindow, settings: Settings,
+        window: CharacterWindow, bubble: SpeechBubble? = nil, settings: Settings,
         isLocked: @escaping () -> Bool = LockScreenVisitor.screenIsLocked,
         lockedName: String = "com.apple.screenIsLocked", unlockedName: String = "com.apple.screenIsUnlocked"
     ) {
         self.window = window
+        self.bubble = bubble
         self.settings = settings
         self.isLocked = isLocked
         let center = DistributedNotificationCenter.default()
@@ -75,6 +77,8 @@ public final class LockScreenVisitor {
         // The Mac announces a lock once. If he starts, or is shown, while it is already locked,
         // that announcement has gone by, so he also checks each time he appears.
         window.didShow = { [weak self] in self?.update() }
+        // The bubble is a window of its own; left behind, it would be drawn under the lock screen.
+        bubble?.didShow = { [weak self] in self?.update() }
         update()
     }
 
@@ -99,7 +103,9 @@ public final class LockScreenVisitor {
         guard let server = WindowServer.shared else { return }
         let locked = announcedLocked ?? isLocked()
         let connection = server.mainConnection()
-        let windows = [NSNumber(value: window.windowNumber)] as CFArray
+        // A bubble that has never been shown has no window number yet.
+        let numbers = [window.windowNumber] + [bubble?.windowNumber ?? 0].filter { $0 > 0 }
+        let windows = numbers.map { NSNumber(value: $0) } as CFArray
         if locked, settings.visitsLockScreen, window.isVisible {
             let space = self.space ?? server.spaceCreate(connection, 1, 0)
             self.space = space
@@ -111,7 +117,10 @@ public final class LockScreenVisitor {
         } else if isVisiting, let space {
             isVisiting = false
             _ = server.removeWindowsFromSpaces(connection, windows, [NSNumber(value: space)] as CFArray)
-            if !locked { window.rejoinDesktop() }
+            if !locked {
+                window.rejoinDesktop()
+                bubble?.rejoinDesktop()
+            }
         }
     }
 }
