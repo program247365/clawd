@@ -82,6 +82,17 @@
       "You're not on a Mac right now. Clawd is a Mac app and needs macOS 14 or later.";
   }
 
+  // The lock screen clip plays while it's on screen. With reduced motion it waits to be asked.
+  const lockVideo = document.getElementById('lock-video');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+    lockVideo.controls = true;
+  } else {
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) lockVideo.play().catch(() => { lockVideo.controls = true; });
+      else lockVideo.pause();
+    }, { threshold: 0.4 }).observe(lockVideo);
+  }
+
   const clock = document.getElementById('clock');
   function tick() {
     clock.textContent = new Date().toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });

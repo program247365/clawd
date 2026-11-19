@@ -1,5 +1,5 @@
 #!/bin/bash
-# Drives the Tart test VM. Usage: vm.sh up | ssh <cmd> | gui <cmd> | push | stop
+# Drives the Tart test VM. Usage: vm.sh up | ssh <cmd> | gui <cmd> | push | record <seconds> <out.mov> | restart | stop
 # Needs TART_HOME set if the VMs are not in tart's default place. State (ssh key, shared folder) is in .vm/.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -44,6 +44,12 @@ push)
     cp "$HERE"/vm/guest/*.sh "$SHARE/"
     retry 'pkill -x Clawd; rm -rf ~/s && mkdir ~/s && cp -R "/Volumes/My Shared Files/share/"* ~/s/ && ls ~/s'
     ;;
+record)
+    # Films the VM window alone, even when other windows cover it. Needs screen recording permission.
+    [ -x "$STATE/record" ] || swiftc -O -suppress-warnings -o "$STATE/record" "$HERE/vm/record/main.swift"
+    "$STATE/record" "$(pgrep -x tart | head -1)" "$2" "$3"
+    ;;
+restart) guest 'echo admin | sudo -S -p "" shutdown -r now' || true ;;
 stop) guest 'echo admin | sudo -S -p "" shutdown -h now' || "$TART" stop "$VM" ;;
 *) sed -n 2,3p "$0"; exit 1 ;;
 esac
