@@ -8,6 +8,13 @@ private struct SettingsView: View {
     @AppStorage(Settings.alertsForAgentsKey) private var alertsForAgents = true
     @State private var codexConnected = CodexHooks.connected()
     @State private var codexMessage: String?
+    let updater: Updater?
+    @State private var checksForUpdates: Bool
+
+    init(updater: Updater?) {
+        self.updater = updater
+        _checksForUpdates = State(initialValue: updater?.checksAutomatically ?? false)
+    }
 
     private func toggleCodex() {
         do {
@@ -83,6 +90,20 @@ private struct SettingsView: View {
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            if let updater {
+                Divider().padding(.vertical, 4)
+
+                Toggle("Check for updates every day", isOn: $checksForUpdates)
+                    .onChange(of: checksForUpdates) { _, on in updater.checksAutomatically = on }
+
+                Text(checksForUpdates
+                    ? "When there's a new version they'll tell you, and a click installs it. The check asks GitHub for the latest version and sends nothing about you."
+                    : "They won't look on their own. Choose Check for Updates… in the menu whenever you like.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(22)
         .frame(width: 380, alignment: .leading)
@@ -92,10 +113,15 @@ private struct SettingsView: View {
 @MainActor
 final class SettingsWindowController {
     private var window: NSWindow?
+    private let updater: Updater?
+
+    init(updater: Updater?) {
+        self.updater = updater
+    }
 
     func show() {
         if window == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(updater: updater)))
             window.title = "Deskling Settings"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false

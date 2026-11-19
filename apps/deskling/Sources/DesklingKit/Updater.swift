@@ -41,6 +41,12 @@ public final class Updater: NSObject {
 
     public var canCheck: Bool { updater?.canCheckForUpdates ?? false }
 
+    /// The daily check. Set through Sparkle so it reschedules straight away.
+    public var checksAutomatically: Bool {
+        get { updater?.automaticallyChecksForUpdates ?? false }
+        set { updater?.automaticallyChecksForUpdates = newValue }
+    }
+
     /// The menu's "Check for Updates…".
     public func checkNow() {
         userInitiated = true

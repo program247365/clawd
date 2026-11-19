@@ -68,7 +68,7 @@ The first time, you pick your Deskling on a character-select screen: arrow keys 
 | **Visits your lock screen** | Turn on "Bring them along to the lock screen" and they keep walking while your Mac is locked. |
 | **Stays out of the way** | They sit above your windows but never take a click, a scroll, or focus, and they step aside for fullscreen apps. |
 | **Fits your screen** | Small, Medium, or Large, from the menu. |
-| **Keeps up to date** | Once a day they check for a new version. When there is one they tell you in their speech bubble; click them to update, and they come back saying so. |
+| **Keeps up to date** | Once a day they check for a new version. When there is one they tell you in their speech bubble; click them to update, and they come back saying so. You can turn the daily check off in Settings. |
 
 From the menubar you can switch characters, hide them, change their size, turn on Launch at Login, check for updates, and open Settings (⌘,).
 
