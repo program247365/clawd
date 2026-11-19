@@ -53,37 +53,65 @@ public final class LockScreenVisitor {
     private let window: ClawdWindow
     private let settings: Settings
     private var space: UInt64?
-    private var isVisiting = false
+    /// True while his window is in the lock screen's layer.
+    public private(set) var isVisiting = false
+    private let isLocked: () -> Bool
+    /// What the Mac last announced. Once it has spoken, that is trusted over asking, which can lag behind.
+    private var announcedLocked: Bool?
 
-    public init(window: ClawdWindow, settings: Settings) {
+    /// `isLocked` reports whether the Mac is locked right now; by default it asks the system.
+    /// The two names are the system's own announcements that the screen has locked and unlocked.
+    public init(
+        window: ClawdWindow, settings: Settings,
+        isLocked: @escaping () -> Bool = LockScreenVisitor.screenIsLocked,
+        lockedName: String = "com.apple.screenIsLocked", unlockedName: String = "com.apple.screenIsUnlocked"
+    ) {
         self.window = window
         self.settings = settings
+        self.isLocked = isLocked
         let center = DistributedNotificationCenter.default()
-        center.addObserver(self, selector: #selector(screenLocked), name: .init("com.apple.screenIsLocked"), object: nil)
-        center.addObserver(self, selector: #selector(screenUnlocked), name: .init("com.apple.screenIsUnlocked"), object: nil)
+        center.addObserver(self, selector: #selector(screenLocked), name: .init(lockedName), object: nil)
+        center.addObserver(self, selector: #selector(screenUnlocked), name: .init(unlockedName), object: nil)
+        // The Mac announces a lock once. If he starts, or is shown, while it is already locked,
+        // that announcement has gone by, so he also checks each time he appears.
+        window.didShow = { [weak self] in self?.update() }
+        update()
     }
 
-    /// He goes only while the Mac is locked, so he never rides this space over a fullscreen app.
+    public nonisolated static func screenIsLocked() -> Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
+    /// Puts him where he belongs for the Mac's state right now. He goes only while the Mac is locked,
+    /// so he never rides this space over a fullscreen app.
     @objc private func screenLocked() {
-        guard settings.visitsLockScreen, !isVisiting, window.isVisible, let server = WindowServer.shared else { return }
-        let connection = server.mainConnection()
-        let space = self.space ?? {
-            let created = server.spaceCreate(connection, 1, 0)
-            _ = server.spaceSetLevel(connection, created, Self.lockScreenLevel)
-            _ = server.showSpaces(connection, [NSNumber(value: created)] as CFArray)
-            return created
-        }()
-        self.space = space
-        _ = server.addWindowsToSpace(connection, space, [NSNumber(value: window.windowNumber)] as CFArray, 7)
-        isVisiting = true
+        announcedLocked = true
+        update()
     }
 
     @objc private func screenUnlocked() {
-        guard isVisiting, let space, let server = WindowServer.shared else { return }
-        isVisiting = false
-        _ = server.removeWindowsFromSpaces(
-            server.mainConnection(), [NSNumber(value: window.windowNumber)] as CFArray,
-            [NSNumber(value: space)] as CFArray)
-        window.rejoinDesktop()
+        announcedLocked = false
+        update()
+    }
+
+    private func update() {
+        guard let server = WindowServer.shared else { return }
+        let locked = announcedLocked ?? isLocked()
+        let connection = server.mainConnection()
+        let windows = [NSNumber(value: window.windowNumber)] as CFArray
+        if locked, settings.visitsLockScreen, window.isVisible {
+            let space = self.space ?? server.spaceCreate(connection, 1, 0)
+            self.space = space
+            // Repeated on every pass: all three are harmless to do twice.
+            _ = server.spaceSetLevel(connection, space, Self.lockScreenLevel)
+            _ = server.showSpaces(connection, [NSNumber(value: space)] as CFArray)
+            _ = server.addWindowsToSpace(connection, space, windows, 7)
+            isVisiting = true
+        } else if isVisiting, let space {
+            isVisiting = false
+            _ = server.removeWindowsFromSpaces(connection, windows, [NSNumber(value: space)] as CFArray)
+            if !locked { window.rejoinDesktop() }
+        }
     }
 }
