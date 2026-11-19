@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .executable(name: "Deskling", targets: ["Deskling"]),
         .executable(name: "deskling-hook", targets: ["DesklingHook"]),
+        .executable(name: "deskling-cli", targets: ["DesklingCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/airbnb/lottie-ios", from: "4.5.0"),
@@ -16,6 +17,7 @@ let package = Package(
         // Foundation only, so the hook starts fast and stays small.
         .target(name: "DesklingEvents"),
         .executableTarget(name: "DesklingHook", dependencies: ["DesklingEvents"]),
+        .executableTarget(name: "DesklingCLI", dependencies: ["DesklingEvents"]),
         .target(name: "DesklingKit", dependencies: [
             "DesklingEvents", .product(name: "Lottie", package: "lottie-ios"), .product(name: "Sparkle", package: "Sparkle"),
         ]),

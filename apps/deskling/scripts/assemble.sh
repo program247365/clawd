@@ -13,6 +13,8 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Resources/
 cp "$bin_dir/Deskling" "$app/Contents/MacOS/Deskling"
 # Run by Claude Code and Codex hooks to tell the app what the agent is doing.
 cp "$bin_dir/deskling-hook" "$app/Contents/Helpers/deskling-hook"
+# The `deskling` command and MCP server, for agents and scripts that want him to say or act something out.
+cp "$bin_dir/deskling-cli" "$app/Contents/Helpers/deskling"
 sed "s/@VERSION@/$version/g" Info.plist.in > "$app/Contents/Info.plist"
 cp Resources/AppIcon.icns Resources/MenuIcon.png "Resources/MenuIcon@2x.png" "$app/Contents/Resources/"
 cp .build/animations/*.json "$app/Contents/Resources/animations/"

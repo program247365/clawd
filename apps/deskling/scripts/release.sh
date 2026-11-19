@@ -25,8 +25,9 @@ make check
 echo "==> Building universal release"
 swift build -c release --product Deskling --arch arm64 --arch x86_64
 swift build -c release --product deskling-hook --arch arm64 --arch x86_64
+swift build -c release --product deskling-cli --arch arm64 --arch x86_64
 scripts/assemble.sh "$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)"
-for binary in "$APP/Contents/MacOS/Deskling" "$APP/Contents/Helpers/deskling-hook"; do
+for binary in "$APP/Contents/MacOS/Deskling" "$APP/Contents/Helpers/deskling-hook" "$APP/Contents/Helpers/deskling"; do
     archs="$(lipo -archs "$binary")"
     if [[ "$archs" != *arm64* || "$archs" != *x86_64* ]]; then
         echo "Expected a universal binary at $binary, got: $archs" >&2
@@ -45,6 +46,7 @@ sign "$sparkle/Versions/B/Autoupdate"
 sign "$sparkle/Versions/B/Updater.app"
 sign "$sparkle"
 sign "$APP/Contents/Helpers/deskling-hook"
+sign "$APP/Contents/Helpers/deskling"
 sign "$APP"
 codesign --verify --strict --deep "$APP"
 

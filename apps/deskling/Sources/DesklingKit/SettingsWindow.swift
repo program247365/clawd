@@ -6,6 +6,7 @@ private struct SettingsView: View {
     @AppStorage(Settings.visitsLockScreenKey) private var visitsLockScreen = false
     @AppStorage(Settings.reactsToAgentsKey) private var reactsToAgents = true
     @AppStorage(Settings.alertsForAgentsKey) private var alertsForAgents = true
+    @AppStorage(Settings.agentsCanSpeakKey) private var agentsCanSpeak = true
     @State private var codexConnected = CodexHooks.connected()
     @State private var codexMessage: String?
     let updater: Updater?
@@ -67,6 +68,7 @@ private struct SettingsView: View {
             Text("Coding agents").font(.system(size: 13, weight: .semibold))
             Toggle("Act out what Claude Code and Codex are doing", isOn: $reactsToAgents)
             Toggle("Come and tell me when an agent needs me", isOn: $alertsForAgents)
+            Toggle("Let agents speak through them", isOn: $agentsCanSpeak)
 
             Text("In Claude Code, run:")
                 .font(.system(size: 11))

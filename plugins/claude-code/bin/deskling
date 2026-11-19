@@ -1,0 +1,12 @@
+#!/bin/sh
+# Runs the Deskling app's `deskling` command: say, act, alert, clear, or mcp. See `deskling --help`.
+# DESKLING_APP points it at a particular copy, such as a local build.
+for app in "${DESKLING_APP:-}" "/Applications/Deskling.app" "$HOME/Applications/Deskling.app"; do
+    if [ -n "$app" ] && [ -x "$app/Contents/Helpers/deskling" ]; then exec "$app/Contents/Helpers/deskling" "$@"; fi
+done
+app="$(mdfind 'kMDItemCFBundleIdentifier == "sh.kbr.deskling"' 2>/dev/null | while IFS= read -r found; do
+    if [ -x "$found/Contents/Helpers/deskling" ]; then printf '%s' "$found"; break; fi
+done)"
+[ -n "$app" ] && exec "$app/Contents/Helpers/deskling" "$@"
+echo "No Deskling with the deskling command found. Install or update it from https://deskling.kbr.sh" >&2
+exit 1

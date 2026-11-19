@@ -149,6 +149,15 @@ public final class Performer {
     /// True while he is asleep because you are away.
     public var isNapping: Bool { mode == .napping }
 
+    /// What agents asked him to say while he napped, oldest first. He wakes up and tells you once you are back.
+    public private(set) var heldWords: [String] = []
+    /// Only the latest few are kept: a long nap should not end in a speech.
+    static let mostHeldWords = 3
+
+    private func hold(_ text: String) {
+        heldWords = Array((heldWords + [text]).suffix(Self.mostHeldWords))
+    }
+
     /// True from `start()` until `stop()`, whether or not there is a screen to show him on yet.
     public var isRunning: Bool { wantsVisible }
 
@@ -202,10 +211,34 @@ public final class Performer {
     /// Plays an act for `role` where he stands, with `saying` over his head. Ignored during the entrance,
     /// while he is alerting you, or when this character has no act for the role.
     public func react(_ role: Role, saying: String? = nil) {
+        if mode == .napping, let saying { return hold(saying) }
         guard mode == .routine || mode == .watching || mode == .reacting,
               !character.acts(for: role).isEmpty
         else { return }
         interrupt(as: .reacting) { performer, _ in await performer.play(role, saying: saying) }
+    }
+
+    public func hasActs(for role: Role) -> Bool {
+        !character.acts(for: role).isEmpty
+    }
+
+    /// Waves once with `text` over his head and holds it long enough to read. Ignored at the same times as `react`.
+    public func speak(_ text: String) {
+        if mode == .napping { return hold(text) }
+        guard mode == .routine || mode == .watching || mode == .reacting else { return }
+        interrupt(as: .reacting) { performer, _ in
+            performer.say(text)
+            if let waving = performer.catalog.load("waving") { await performer.window.play(waving) }
+            if Task.isCancelled { return }
+            performer.standStill()
+            try? await Task.sleep(for: .seconds(Self.readingTime(for: text)))
+            performer.bubble.hide()
+        }
+    }
+
+    /// Long enough to read `text` at a glance: a couple of seconds, more for longer lines, never long enough to get in the way.
+    static func readingTime(for text: String) -> TimeInterval {
+        min(max(1.5 + Double(text.count) * 0.08, 2.5), 6)
     }
 
     /// Plays one of the acts for `role`, if the character has any.
@@ -329,12 +362,30 @@ public final class Performer {
     private func carryOn(on stage: Stage) async {
         if alertText != nil, settings.alertsForAgents {
             await waveForAttention()
+        } else if !heldWords.isEmpty {
+            await sayHeldWords()
+            if !Task.isCancelled { await routine(on: stage) }
         } else if announcement != nil {
             await tellYou()
             if !Task.isCancelled { await routine(on: stage) }
         } else {
             await routine(on: stage)
         }
+    }
+
+    /// Waves to get your attention, then says what he was asked to while he napped, one line at a time.
+    private func sayHeldWords() async {
+        face(.right)
+        if let waving = catalog.load("waving") { await window.play(waving) }
+        if Task.isCancelled { return }
+        standStill()
+        // A line is only done with once it has stayed up long enough to read; an interruption leaves it for next time.
+        while !Task.isCancelled, let text = heldWords.first {
+            say(text)
+            try? await Task.sleep(for: .seconds(Self.readingTime(for: text)))
+            if !Task.isCancelled { heldWords.removeFirst() }
+        }
+        bubble.hide()
     }
 
     /// Waves hello, then says the announcement's lines in turn and holds the last.

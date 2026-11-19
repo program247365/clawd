@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "deskling": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/deskling",
+      "args": ["mcp"]
+    }
+  }
+}

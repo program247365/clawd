@@ -94,6 +94,22 @@ When more than one agent is waiting, the bubble names them if they fit ("api and
 
 The hooks send the app only the event type, the session id, the project folder's name, and the tool name. When an agent is waiting on you they also send the process ids above the hook, the app the shell was started from, the terminal device, and in Warp the tab's `WARP_FOCUS_URL`, so a click can find your terminal tab. Prompts, commands, and file contents never leave the agent. If the app isn't running, the hooks do nothing. Any other agent can join in by running `Deskling.app/Contents/Helpers/deskling-hook --agent <name> --event <kind>`. The event kinds are listed in `apps/deskling/Sources/DesklingHook/main.swift`.
 
+### Letting agents speak
+
+Agents, scripts, and you can also have your Deskling say things on purpose with the `deskling` command:
+
+```sh
+deskling say "Tests pass" --as celebrate   # words in a bubble, with an act if you name one
+deskling act think                         # an act on its own
+deskling alert "Review the migration plan" # come and wave until you answer or clear it
+deskling clear                             # stop waving for this folder's alert
+deskling mcp                               # the same four as tools on an MCP server over stdio
+```
+
+It ships inside the app as `Deskling.app/Contents/Helpers/deskling`; link it onto your `PATH` to use it from a shell (`ln -s /Applications/Deskling.app/Contents/Helpers/deskling ~/.local/bin/deskling`). The Claude Code plugin puts it on Claude's `PATH` and connects the MCP server, so Claude can use the `say`, `act`, `alert`, and `clear` tools. For other MCP clients, such as Claude Desktop, add a server whose command is that path with the argument `mcp`.
+
+Text is cut to one line of 60 characters, and words sent within four seconds of the last are dropped, so a chatty agent can't keep them talking. Nothing is said while they wave for an agent. Words sent while they nap (you've been away for a while) are kept, the latest three, and when you're back they wake up, wave, and tell you. An alert belongs to the folder it was sent from: it's listed in the menu as "Agent · <folder>", clicking it goes to the sender's terminal, and it ends with `deskling clear` from that folder or, with the Claude Code or Codex hooks connected, your next prompt there. Unlike the hooks, these carry words an agent chose to show you; turn off **Let agents speak through them** in Settings to ignore them all.
+
 ## Development
 
 The repo holds two apps:

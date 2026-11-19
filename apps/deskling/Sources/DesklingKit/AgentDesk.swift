@@ -5,6 +5,8 @@ import Foundation
 public enum AgentReaction: Equatable {
     /// Play an act for this role, optionally with a few words over his head.
     case perform(Role, saying: String?)
+    /// Say a few words where he stands, with no act to go with them.
+    case speak(String)
     /// Come and wave until it is cleared. Replaces any alert already showing.
     case alert(String)
     case clearAlert
@@ -19,12 +21,15 @@ public struct WaitingSession: Equatable, Identifiable {
     public let since: Date
     /// Where it runs, if the hook could tell.
     public var origin: AgentEvent.Origin? = nil
+    /// What the agent asked him to say, for an alert sent with `deskling alert`.
+    public var message: String? = nil
 
     /// "Claude Code", "Codex", or the agent's own name.
     public var agentName: String {
         switch agent {
         case "claude": "Claude Code"
         case "codex": "Codex"
+        case DesklingCommand.agent: "Agent"
         default: agent.prefix(1).uppercased() + agent.dropFirst()
         }
     }
@@ -49,6 +54,9 @@ public struct AgentDesk {
     /// Shortest gap between two celebrations.
     public static let celebrateGap: TimeInterval = 10
 
+    /// Shortest gap between two things agents ask him to say; any sooner and they are dropped, so a chatty agent cannot keep him talking.
+    public static let commandGap: TimeInterval = 4
+
     /// The bubble names the waiting projects when they fit in this many characters, and counts them otherwise.
     public static let longestNamedMessage = 30
 
@@ -56,6 +64,7 @@ public struct AgentDesk {
     public private(set) var waiting: [WaitingSession] = []
     private var lastAmbient: Date?
     private var lastCelebration: Date?
+    private var lastSaid: Date?
 
     public init() {}
 
@@ -74,6 +83,10 @@ public struct AgentDesk {
 
         // Anything else from a waiting session means you answered it.
         if let answered = dismiss(key) { reactions.append(answered) }
+        // So does a new prompt in the folder an agent sent `deskling alert` from, in case it never sends `clear`.
+        if event.kind == .promptSubmitted, let answered = dismiss("\(DesklingCommand.agent)/\(event.project)") {
+            reactions.append(answered)
+        }
         // While someone is waiting, he stays put and keeps waving.
         guard waiting.isEmpty else { return reactions }
 
@@ -91,6 +104,34 @@ public struct AgentDesk {
         lastAmbient = now
         reactions.append(.perform(role, saying: nil))
         return reactions
+    }
+
+    /// Something an agent asked for on purpose. `speaks` is whether agents may speak through him at all;
+    /// `alerts` whether he may come and tell you things.
+    public mutating func handle(_ command: DesklingCommand, at now: Date, speaks: Bool = true, alerts: Bool = true) -> [AgentReaction] {
+        let key = "\(DesklingCommand.agent)/\(command.project)"
+        switch command.action {
+        case .say:
+            guard speaks, waiting.isEmpty,
+                  lastSaid.map({ now.timeIntervalSince($0) >= Self.commandGap }) ?? true
+            else { return [] }
+            lastSaid = now
+            if let role = command.role.flatMap(Role.init(rawValue:)) { return [.perform(role, saying: command.text)] }
+            return command.text.map { [.speak($0)] } ?? []
+        case .alert:
+            guard speaks, alerts, let text = command.text else { return [] }
+            if let index = waiting.firstIndex(where: { $0.id == key }) {
+                waiting[index].message = text
+                waiting[index].origin = command.origin ?? waiting[index].origin
+            } else {
+                waiting.append(WaitingSession(
+                    id: key, agent: DesklingCommand.agent, project: command.project, since: now,
+                    origin: command.origin, message: text))
+            }
+            return [.alert(alertMessage)]
+        case .clear:
+            return dismiss(key).map { [$0] } ?? []
+        }
     }
 
     /// Forgets every waiting session, as when you dismiss them all from the menu.
@@ -112,7 +153,7 @@ public struct AgentDesk {
         case 0:
             return ""
         case 1:
-            return "\(projects[0]) needs you"
+            return waiting[0].message ?? "\(projects[0]) needs you"
         case 2 where projects[0] != projects[1]:
             let named = "\(projects[0]) and \(projects[1]) need you"
             if named.count <= Self.longestNamedMessage { return named }

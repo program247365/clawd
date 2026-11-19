@@ -73,6 +73,14 @@ public final class Settings {
 
     public static let alertsForAgentsKey = "alertsForAgents"
 
+    /// Whether agents and scripts may have him say things and act on request (`deskling say`, the MCP server). On by default.
+    public var agentsCanSpeak: Bool {
+        get { defaults.object(forKey: Self.agentsCanSpeakKey) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Self.agentsCanSpeakKey) }
+    }
+
+    public static let agentsCanSpeakKey = "agentsCanSpeak"
+
     /// The version that ran last, so after an update they can tell you what you are on now.
     public var lastRunVersion: String? {
         get { defaults.string(forKey: "lastRunVersion") }

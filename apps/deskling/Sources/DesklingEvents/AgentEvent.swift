@@ -53,12 +53,7 @@ public struct AgentEvent: Equatable, Sendable {
     public var userInfo: [String: String] {
         var info = ["agent": agent, "kind": kind.rawValue, "session": session, "project": project]
         info["tool"] = tool
-        if let origin {
-            info["processes"] = origin.processes.map(String.init).joined(separator: ",")
-            info["bundleID"] = origin.bundleID
-            info["tty"] = origin.tty
-            info["focusURL"] = origin.focusURL
-        }
+        if let origin { info.merge(origin.userInfo) { mine, _ in mine } }
         return info
     }
 
@@ -69,13 +64,8 @@ public struct AgentEvent: Equatable, Sendable {
               let session = info["session"] as? String,
               let project = info["project"] as? String
         else { return nil }
-        let processes = (info["processes"] as? String)?.split(separator: ",").compactMap { Int32($0) }
-        let bundleID = info["bundleID"] as? String
-        let tty = info["tty"] as? String
-        let focusURL = info["focusURL"] as? String
-        let origin = processes == nil && bundleID == nil && tty == nil && focusURL == nil
-            ? nil : Origin(processes: processes ?? [], bundleID: bundleID, tty: tty, focusURL: focusURL)
-        self.init(agent: agent, kind: kind, session: session, project: project, tool: info["tool"] as? String, origin: origin)
+        self.init(agent: agent, kind: kind, session: session, project: project, tool: info["tool"] as? String,
+                  origin: Origin(userInfo: info))
     }
 
     /// A hook's stdin JSON. Claude Code and Codex share the format: `hook_event_name`, `session_id`,

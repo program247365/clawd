@@ -1,7 +1,7 @@
 {
   "name": "deskling",
-  "version": "0.1.0",
-  "description": "Your Deskling acts out what Claude Code is doing and comes to tell you when it needs you. Needs the Deskling Mac app.",
+  "version": "0.2.0",
+  "description": "Your Deskling acts out what Claude Code is doing and comes to tell you when it needs you, and Claude can have it say things. Needs the Deskling Mac app.",
   "author": { "name": "Kevin B. Ridgway" },
   "homepage": "https://deskling.kbr.sh"
 }
