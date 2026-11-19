@@ -102,8 +102,34 @@ func writeThumbnails(animations: URL, output: URL) throws {
     }
 }
 
+/// Writes every frame of one animation as a numbered PNG, for building the README's animated GIF.
+/// Usage: IconTool --frames <staged animations directory> <animation name> <output directory>
+@MainActor
+func writeFrames(animations: URL, name: String, output: URL) throws {
+    guard let item = AnimationCatalog(directory: animations).load(name) else {
+        throw CocoaError(.fileNoSuchFile)
+    }
+    try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+    for frame in 0..<item.frameCount {
+        guard let image = FrameRenderer.render(item.animation, frame: CGFloat(frame), pixelSize: CGSize(width: 825, height: 555))
+        else { continue }
+        try writePNG(image, to: output.appendingPathComponent(String(format: "frame-%03d.png", frame)))
+    }
+}
+
 MainActor.assumeIsolated {
     let arguments = CommandLine.arguments
+    if arguments.count == 5, arguments[1] == "--frames" {
+        do {
+            try writeFrames(
+                animations: URL(fileURLWithPath: arguments[2]), name: arguments[3],
+                output: URL(fileURLWithPath: arguments[4]))
+            exit(0)
+        } catch {
+            FileHandle.standardError.write(Data("IconTool: \(error.localizedDescription)\n".utf8))
+            exit(1)
+        }
+    }
     if arguments.count == 4, arguments[1] == "--thumbs" {
         do {
             try writeThumbnails(animations: URL(fileURLWithPath: arguments[2]), output: URL(fileURLWithPath: arguments[3]))

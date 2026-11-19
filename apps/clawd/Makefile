@@ -1,7 +1,7 @@
 SITE_ASSETS := ../website/assets
 ANIMATIONS := .build/animations
 
-.PHONY: animations check icons thumbs app run release
+.PHONY: animations check icons thumbs readme-gif app run release
 
 animations:
 	rm -rf $(ANIMATIONS)
@@ -30,6 +30,15 @@ icons: animations
 thumbs: animations
 	swift build --product IconTool
 	.build/debug/IconTool --thumbs $(ANIMATIONS) ../website/assets/thumbs
+
+# Regenerates the waving Clawd at the top of the README (needs ImageMagick).
+readme-gif: animations
+	swift build --product IconTool
+	rm -rf .build/readme-frames
+	.build/debug/IconTool --frames $(ANIMATIONS) waving .build/readme-frames
+	mkdir -p ../../docs
+	magick -delay 1x12 -dispose background -loop 0 .build/readme-frames/frame-*.png \
+		-layers trim-bounds -filter point -resize 50% ../../docs/clawd-waving.gif
 
 # A local, ad-hoc signed build for this machine's architecture.
 app: animations
