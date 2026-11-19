@@ -291,6 +291,7 @@ a.download:hover, button.download:not(:disabled):hover { background: var(--clawd
 .window-readme p { max-width: 34rem; text-wrap: pretty; }
 .facts { list-style: none; margin: 1.5rem 0; display: grid; gap: 0.625rem; }
 .facts li { position: relative; padding-left: 1.75rem; max-width: 34rem; }
+.facts code { white-space: nowrap; }
 .facts li::before {
   /* A single Clawd pixel as the bullet. */
   content: ""; position: absolute; left: 0.25rem; top: 0.5em;
