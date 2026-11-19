@@ -1,0 +1,7 @@
+{
+  "name": "deskling",
+  "version": "0.1.0",
+  "description": "Your Deskling acts out what Claude Code is doing and comes to tell you when it needs you. Needs the Deskling Mac app.",
+  "author": { "name": "Kevin B. Ridgway" },
+  "homepage": "https://clawd.kbr.sh"
+}
