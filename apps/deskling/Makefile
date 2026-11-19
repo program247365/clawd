@@ -3,7 +3,7 @@ ANIMATIONS := .build/animations
 CHARACTERS := .build/characters
 ASEPRITE ?= /Applications/Aseprite.app/Contents/MacOS/aseprite
 
-.PHONY: animations check icons thumbs readme-gif app run release new-character export-characters
+.PHONY: animations check icons thumbs readme-gif app run release new-character export-characters site-characters
 
 animations:
 	rm -rf $(ANIMATIONS)
@@ -48,6 +48,22 @@ export-characters:
 		$(ASEPRITE) -b --script-param file=$(CURDIR)/$$file --script-param out=$(CURDIR)/$$dir \
 			--script scripts/aseprite/export-character.lua || exit 1; \
 	done
+
+# Copies the drawn characters into the website, with a still of each one standing for when the
+# page's animation library does not load.
+site-characters: animations
+	python3 ../website/scripts/sync-characters.py
+	swift build --product IconTool
+	for dir in $(CHARACTERS)/*/; do \
+		id=$$(basename $$dir); \
+		frame=$$(python3 -c "import json; print('%03d' % json.load(open('$$dir/meta.json'))['standingFrame'])"); \
+		mkdir -p .build/stills/$$id; \
+		.build/debug/IconTool --frames $$dir/animations walking .build/stills/$$id >/dev/null; \
+		sips -Z 220 .build/stills/$$id/frame-$$frame.png --out ../website/assets/characters/$$id/stand.png >/dev/null; \
+	done
+	mkdir -p .build/stills/clawd ../website/assets/characters/clawd
+	.build/debug/IconTool --frames $(ANIMATIONS) walking .build/stills/clawd >/dev/null
+	sips -Z 220 .build/stills/clawd/frame-026.png --out ../website/assets/characters/clawd/stand.png >/dev/null
 
 # Regenerates the committed icons from the art (walking frame 26, the standing pose).
 icons: animations

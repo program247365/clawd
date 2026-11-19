@@ -1,8 +1,9 @@
-// Clawd's routine on the page: the same rules as the Mac app.
+// The page's character and their routine: the same rules as the Mac app.
 // Walk to a stop, perform an act, repeat; about one time in four, teleport instead of walking.
+// Clawd walks the page to start; the Characters window can swap in anyone from the cast.
 //
 // Animations are fetched one at a time. Only the walk is needed to start; each act is
-// requested while he walks toward the spot where he'll perform it.
+// requested while they walk toward the spot where they'll perform it.
 (() => {
   const root = document.documentElement;
   const el = document.getElementById('clawd');
@@ -13,19 +14,19 @@
   const WALK_FACES_RIGHT = true;       // native facing of the walking animation
   const SHORT_ACT_FRAMES = 40;         // acts shorter than this play twice
   const TELEPORT_CHANCE = 0.25;
-  // clawd-walking.json: frames 0–4 stand + lean in, 5–24 step cycle, 25–27 stand.
-  // Looping only the step cycle keeps him from sliding while posed still.
-  const WALK_CYCLE = [5, 25];
-  const STANDING_FRAME = 26;
   const GRAVITY = 2400;                // px per second squared, the same fall as the app's entrance
   // These three live beside the acts folder rather than in it.
   const TOP_LEVEL = new Set(['walking', 'waving', 'looking']);
 
   const listeners = new Set();
+  const characterListeners = new Set();
   const api = {
     live: Boolean(window.lottie),
     perform() {},
+    setCharacter() {},
+    character: 'clawd',
     onAct(fn) { listeners.add(fn); },
+    onCharacter(fn) { characterListeners.add(fn); },
   };
   window.Clawd = api;
 
@@ -38,14 +39,33 @@
   if (!window.lottie) { goStatic(); return; }
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // The Acts window lists every act, so the page needs no separate manifest.
-  const actNames = [...document.querySelectorAll('.act')].map(button => button.dataset.act);
+  // Clawd's acts are the Acts window's buttons, so his part needs no separate manifest.
+  // clawd-walking.json: frames 0–4 stand + lean in, 5–24 step cycle, 25–27 stand.
+  // Looping only the step cycle keeps him from sliding while posed still.
+  const CLAWD = {
+    id: 'clawd',
+    name: 'Clawd',
+    walkCycle: [5, 25],
+    standingFrame: 26,
+    acts: [...document.querySelectorAll('.act')].map(button => button.dataset.act),
+    url: name => `assets/${TOP_LEVEL.has(name) ? '' : 'acts/'}clawd-${name}.json`,
+  };
+  // Anyone else comes from assets/characters/index.json, as the Characters window reads it.
+  const castMember = entry => entry.builtin ? CLAWD : {
+    id: entry.id,
+    name: entry.name,
+    walkCycle: entry.walkCycle,
+    standingFrame: entry.standingFrame,
+    acts: entry.acts,
+    url: name => `assets/characters/${entry.id}/${name}.json`,
+  };
+  let character = CLAWD;
 
   const players = new Map(); // name -> promise of { name, el, anim, frames }
 
   function ready(name) {
     if (!players.has(name)) {
-      const url = `assets/${TOP_LEVEL.has(name) ? '' : 'acts/'}clawd-${name}.json`;
+      const url = character.url(name);
       const loading = fetch(url)
         .then(response => {
           if (!response.ok) throw new Error(`${url}: ${response.status}`);
@@ -131,7 +151,7 @@
     const mine = generation;
     dir = target >= x ? 1 : -1;
     announce('walking');
-    show(walking, { loop: true, segment: WALK_CYCLE });
+    show(walking, { loop: true, segment: character.walkCycle });
     const arrived = new Promise(resolve => {
       let last = performance.now();
       function step(now) {
@@ -184,10 +204,11 @@
 
   let queue = [];
   function nextAct() {
-    if (!queue.length) queue = [...actNames].sort(() => Math.random() - 0.5);
+    const acts = character.acts;
+    if (!queue.length) queue = [...acts].sort(() => Math.random() - 0.5);
     const name = queue.pop();
     // The act on screen is released when the next one takes over, so never queue it twice in a row.
-    return current && current.name === name && actNames.length > 1 ? nextAct() : name;
+    return current && current.name === name && acts.length > 1 ? nextAct() : name;
   }
 
   function backToFloor() {
@@ -204,14 +225,14 @@
 
   // The app's launch entrance, on page load: he drops in under a spotlight, lands, waves once,
   // the light fades, and only then does he start walking.
-  async function entrance(walking) {
+  async function entrance(walking, mine) {
     const spotlight = document.getElementById('spotlight');
     const waving = fetchAct('waving');
     x = Math.round(maxX() / 2);
     dir = 1;
     lift = innerHeight;
     place();
-    show(walking, { still: STANDING_FRAME });
+    show(walking, { still: character.standingFrame });
     if (spotlight) {
       spotlight.style.left = `${x + width() / 2}px`;
       spotlight.dataset.on = '';
@@ -221,6 +242,8 @@
       let falling = 0;
       let last = performance.now();
       function step(now) {
+        // A newer character's entrance has taken over the floor.
+        if (mine !== session) { resolve(); return; }
         falling += Math.min(now - last, 50) / 1000;
         last = now;
         lift = Math.max(0, top - 0.5 * GRAVITY * falling * falling);
@@ -229,9 +252,10 @@
       }
       requestAnimationFrame(step);
       // Frames pause in a background tab; he still lands.
-      setTimeout(() => { lift = 0; place(); resolve(); }, 1500);
+      setTimeout(() => { if (mine === session) { lift = 0; place(); } resolve(); }, 1500);
     });
     const wave = await waving;
+    if (mine !== session) return;
     if (wave) {
       announce('waving');
       show(wave);
@@ -240,16 +264,20 @@
         new Promise(resolve => setTimeout(resolve, 3000)),
       ]);
     }
-    show(walking, { still: STANDING_FRAME });
+    if (mine !== session) return;
+    show(walking, { still: character.standingFrame });
     if (spotlight) delete spotlight.dataset.on;
     await new Promise(resolve => setTimeout(resolve, 700));
   }
 
   let requested = null;
-  let walksFirst = true; // after the entrance his first move is a walk from where he landed
-  async function run(walking) {
-    await entrance(walking);
+  let walksFirst = true; // after the entrance their first move is a walk from where they landed
+  // Each character gets a session; switching starts a new one and the old routine stops.
+  let session = 0;
+  async function run(walking, mySession) {
+    await entrance(walking, mySession);
     for (;;) {
+      if (mySession !== session) return;
       const mine = generation;
       backToFloor();
       if (root.hasAttribute('data-hidden')) { await interrupted(); continue; }
@@ -288,13 +316,13 @@
         x = Math.random() * maxX();
         lift = 0;
         place();
-        show(walking, { still: STANDING_FRAME });
+        show(walking, { still: character.standingFrame });
         await pop(true);
       } else {
         await walkTo(walking, randomStop());
         if (generation !== mine) continue;
         // If the act is still downloading he stands and waits, rather than walking on the spot.
-        show(walking, { still: STANDING_FRAME });
+        show(walking, { still: character.standingFrame });
         const act = await unlessInterrupted(loading);
         if (generation !== mine) continue;
         if (act) await perform(act);
@@ -307,7 +335,7 @@
   function stand(walking) {
     backToFloor();
     announce('standing');
-    show(walking, { still: STANDING_FRAME });
+    show(walking, { still: character.standingFrame });
   }
   async function showStill(walking, name) {
     clearTimeout(stillTimer);
@@ -325,28 +353,66 @@
     if (current.anim.isPaused) current.anim.goToAndStop(current.anim.currentFrame, true);
   }
 
-  ready('walking').then(walking => {
-    api.perform = name => {
-      if (!actNames.includes(name)) return;
-      if (reducedMotion) { showStill(walking, name); return; }
-      requested = name;
-      interrupt();
-    };
+  let walkingNow = null;
 
-    new MutationObserver(() => {
-      // Size or visibility changed: start the routine over from the floor at the new size.
-      // Interrupting right away, not a frame later, keeps an act requested in the same click.
-      if (reducedMotion) requestAnimationFrame(() => stand(walking)); else interrupt();
-    }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
+  // Loads `next`'s walk and starts their routine with an entrance. Resolves false if it failed.
+  function begin(next) {
+    const mySession = ++session;
+    interrupt();
+    for (const loading of players.values()) {
+      loading.then(player => { player.anim.destroy(); player.el.remove(); }, () => {});
+    }
+    players.clear();
+    current = null;
+    queue = [];
+    walksFirst = true;
+    character = next;
+    api.character = next.id;
+    return ready('walking').then(walking => {
+      if (mySession !== session) return true;
+      walkingNow = walking;
+      for (const fn of characterListeners) fn(next);
+      if (reducedMotion) stand(walking); else run(walking, mySession);
+      return true;
+    }, () => false);
+  }
 
-    addEventListener('resize', () => {
-      resizeCurrent();
-      x = Math.min(x, maxX());
-      place();
-      // His walk target was chosen for the old width.
-      if (!reducedMotion) interrupt();
-    });
+  api.perform = name => {
+    if (!CLAWD.acts.includes(name)) return;
+    // The Acts window is Clawd's: asking for one of his acts brings him back to do it.
+    if (character !== CLAWD) {
+      requested = reducedMotion ? null : name;
+      begin(CLAWD);
+      return;
+    }
+    if (reducedMotion) { if (walkingNow) showStill(walkingNow, name); return; }
+    requested = name;
+    interrupt();
+  };
 
-    if (reducedMotion) stand(walking); else run(walking);
-  }, goStatic);
+  api.setCharacter = async entry => {
+    const next = castMember(entry);
+    if (next.id === character.id) return true;
+    const previous = character;
+    const ok = await begin(next);
+    // Their files never arrived: put the previous character back rather than leave the floor empty.
+    if (!ok) await begin(previous);
+    return ok;
+  };
+
+  new MutationObserver(() => {
+    // Size or visibility changed: start the routine over from the floor at the new size.
+    // Interrupting right away, not a frame later, keeps an act requested in the same click.
+    if (reducedMotion) requestAnimationFrame(() => walkingNow && stand(walkingNow)); else interrupt();
+  }).observe(root, { attributes: true, attributeFilter: ['data-size', 'data-hidden'] });
+
+  addEventListener('resize', () => {
+    resizeCurrent();
+    x = Math.min(x, maxX());
+    place();
+    // The walk target was chosen for the old width.
+    if (!reducedMotion) interrupt();
+  });
+
+  begin(CLAWD).then(ok => { if (!ok) goStatic(); });
 })();

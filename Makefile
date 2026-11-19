@@ -26,6 +26,7 @@ check: website-check ## Run everything CI would: site checks, build, and tests
 # Every act listed in the page must have its animation and its thumbnail.
 website-check:
 	python3 apps/website/scripts/check-acts.py
+	python3 apps/website/scripts/sync-characters.py --check
 
 ##@ Deploy
 release: ## Build, sign, and notarize the disk image for the version in apps/deskling/VERSION

@@ -16,6 +16,7 @@
 <header class="menubar">
   <nav class="menubar-left" aria-label="Sections">
     <a class="app-name" href="#install">Clawd</a>
+    <a href="#characters">Characters</a>
     <a href="#acts">Acts</a>
     <a href="#readme">Read Me</a>
     <a href="https://github.com/program247365/clawd" target="_blank" rel="noopener">Source</a>
@@ -61,6 +62,45 @@
     </div>
   </section>
   </div>
+
+  <section class="window window-cast" id="characters" aria-labelledby="cast-title">
+    <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title" id="cast-title">Characters</span><span class="count">5 characters</span></div>
+    <div class="stage">
+      <h2 class="stage-title">Choose your character</h2>
+      <div class="lineup" role="radiogroup" aria-label="Characters">
+        <button type="button" class="fighter" role="radio" aria-checked="true" tabindex="0" data-character="clawd" data-name="Clawd" data-blurb="The original. Orange, earnest, always busy.">
+          <span class="p1" aria-hidden="true">P1</span>
+          <img src="assets/characters/clawd/stand.png" width="110" height="74" alt="">
+          <span class="visually-hidden">Clawd</span>
+        </button>
+        <button type="button" class="fighter" role="radio" aria-checked="false" tabindex="-1" data-character="luna" data-name="Luna" data-blurb="Sleepy, soft, and quietly full of phases.">
+          <span class="p1" aria-hidden="true">P1</span>
+          <img src="assets/characters/luna/stand.png" width="110" height="74" alt="">
+          <span class="visually-hidden">Luna</span>
+        </button>
+        <button type="button" class="fighter" role="radio" aria-checked="false" tabindex="-1" data-character="minx" data-name="Minx" data-blurb="Curious about everything. Especially pumpkins.">
+          <span class="p1" aria-hidden="true">P1</span>
+          <img src="assets/characters/minx/stand.png" width="110" height="74" alt="">
+          <span class="visually-hidden">Minx</span>
+        </button>
+        <button type="button" class="fighter" role="radio" aria-checked="false" tabindex="-1" data-character="octo" data-name="Octo" data-blurb="Eight arms, six of them for showing off.">
+          <span class="p1" aria-hidden="true">P1</span>
+          <img src="assets/characters/octo/stand.png" width="110" height="74" alt="">
+          <span class="visually-hidden">Octo</span>
+        </button>
+        <button type="button" class="fighter" role="radio" aria-checked="false" tabindex="-1" data-character="sol" data-name="Sol" data-blurb="Up early, out late, warm about it.">
+          <span class="p1" aria-hidden="true">P1</span>
+          <img src="assets/characters/sol/stand.png" width="110" height="74" alt="">
+          <span class="visually-hidden">Sol</span>
+        </button>
+      </div>
+      <div class="nameplate" aria-live="polite">
+        <p class="fighter-title" id="fighter-name">Clawd</p>
+        <p class="fighter-blurb" id="fighter-blurb">The original. Orange, earnest, always busy.</p>
+      </div>
+      <p class="stage-note">Pick one and they'll take over this page. The whole cast comes to the app in the next release; today's download has Clawd.</p>
+    </div>
+  </section>
 
   <section class="window window-acts" id="acts" aria-labelledby="acts-title">
     <div class="titlebar"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="title" id="acts-title">Acts</span><span class="count">36 items</span></div>
@@ -178,6 +218,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" integrity="sha512-jEnuDt6jfecCjthQAJ+ed0MTVA++5ZKmlUcmDGBv2vUI/REn6FuIdixLNnQT+vKusE2hhTk2is3cFvv5wA+Sgg==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <script src="clawd.js" defer></script>
 <script src="site.js" defer></script>
+<script src="lineup.js" defer></script>
 <!-- Vercel Web Analytics: cookieless page-view counts. The script only exists when served by Vercel. -->
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>

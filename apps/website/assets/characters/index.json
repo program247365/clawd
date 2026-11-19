@@ -1,0 +1,88 @@
+{
+  "characters": [
+    {
+      "id": "clawd",
+      "name": "Clawd",
+      "blurb": "The original. Orange, earnest, always busy.",
+      "walkCycle": [
+        5,
+        25
+      ],
+      "standingFrame": 26,
+      "ready": false,
+      "builtin": true
+    },
+    {
+      "id": "luna",
+      "name": "Luna",
+      "blurb": "Sleepy, soft, and quietly full of phases.",
+      "walkCycle": [
+        0,
+        12
+      ],
+      "standingFrame": 12,
+      "ready": true,
+      "acts": [
+        "celebrate",
+        "looking",
+        "phases",
+        "think",
+        "waving"
+      ]
+    },
+    {
+      "id": "minx",
+      "name": "Minx",
+      "blurb": "Curious about everything. Especially pumpkins.",
+      "walkCycle": [
+        0,
+        12
+      ],
+      "standingFrame": 12,
+      "ready": false,
+      "acts": [
+        "celebrate",
+        "curious",
+        "looking",
+        "pumpkin",
+        "think",
+        "waving"
+      ]
+    },
+    {
+      "id": "octo",
+      "name": "Octo",
+      "blurb": "Eight arms, six of them for showing off.",
+      "walkCycle": [
+        0,
+        8
+      ],
+      "standingFrame": 8,
+      "ready": false,
+      "acts": [
+        "celebrate",
+        "looking",
+        "think",
+        "waving"
+      ]
+    },
+    {
+      "id": "sol",
+      "name": "Sol",
+      "blurb": "Up early, out late, warm about it.",
+      "walkCycle": [
+        0,
+        8
+      ],
+      "standingFrame": 8,
+      "ready": true,
+      "acts": [
+        "celebrate",
+        "looking",
+        "sunset",
+        "think",
+        "waving"
+      ]
+    }
+  ]
+}
