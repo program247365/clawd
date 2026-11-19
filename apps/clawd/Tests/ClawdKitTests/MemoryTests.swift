@@ -3,16 +3,12 @@ import Lottie
 import QuartzCore
 import XCTest
 
-/// What Activity Monitor calls "Memory": the process's physical footprint, in megabytes.
-func footprintMB() -> Double {
-    var info = task_vm_info_data_t()
-    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
-    let result = withUnsafeMutablePointer(to: &info) {
-        $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-            task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
-        }
-    }
-    return result == KERN_SUCCESS ? Double(info.phys_footprint) / 1_048_576 : 0
+/// Memory the app is actually holding on to, in megabytes. Not what Activity Monitor shows: that also
+/// counts freed memory the allocator has yet to hand back, which swings by tens of megabytes on a busy Mac.
+func heapInUseMB() -> Double {
+    var statistics = malloc_statistics_t()
+    malloc_zone_statistics(nil, &statistics)
+    return Double(statistics.size_in_use) / 1_048_576
 }
 
 @MainActor
@@ -54,7 +50,7 @@ final class MemoryTests: XCTestCase {
                 CATransaction.flush()
                 RunLoop.current.run(until: Date().addingTimeInterval(0.005))
             }
-            afterEachRound.append(footprintMB())
+            afterEachRound.append(heapInUseMB())
         }
 
         print("memory after each round (MB):", afterEachRound.map { String(format: "%.1f", $0) })
