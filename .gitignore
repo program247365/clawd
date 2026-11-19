@@ -5,3 +5,4 @@ dist/
 .superpowers/
 .env*
 .vm/
+scripts/vm/soak/Package.resolved
