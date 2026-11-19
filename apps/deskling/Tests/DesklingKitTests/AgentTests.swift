@@ -258,9 +258,11 @@ final class ClawdHookTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.isExecutableFile(atPath: binary.path), "run swift build first")
 
         let session = UUID().uuidString
+        // A private name: a Deskling running on this Mac must not hear the test's agent.
+        let channel = "sh.kbr.deskling.tests.\(session)"
         let received = expectation(description: "event posted")
         let observer = DistributedNotificationCenter.default().addObserver(
-            forName: AgentEvent.notificationName, object: nil, queue: .main
+            forName: Notification.Name(channel), object: nil, queue: .main
         ) { notification in
             guard let event = AgentEvent(userInfo: notification.userInfo), event.session == session else { return }
             XCTAssertEqual(event, AgentEvent(agent: "codex", kind: .needsInput, session: session, project: "api"))
@@ -271,6 +273,7 @@ final class ClawdHookTests: XCTestCase {
         let process = Process()
         process.executableURL = binary
         process.arguments = ["--agent", "codex"]
+        process.environment = ["DESKLING_EVENT_NAME": channel]
         let input = Pipe()
         let output = Pipe()
         process.standardInput = input
@@ -293,6 +296,7 @@ final class ClawdHookTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.isExecutableFile(atPath: binary.path), "run swift build first")
         let process = Process()
         process.executableURL = binary
+        process.environment = ["DESKLING_EVENT_NAME": "sh.kbr.deskling.tests.\(UUID().uuidString)"]
         let input = Pipe()
         process.standardInput = input
         try process.run()

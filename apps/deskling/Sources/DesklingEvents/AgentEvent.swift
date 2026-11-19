@@ -22,8 +22,11 @@ public struct AgentEvent: Equatable, Sendable {
         self.tool = tool
     }
 
-    /// The name the hook posts on and the app listens for.
-    public static let notificationName = Notification.Name("sh.kbr.deskling.agent-event")
+    /// The name the hook posts on and the app listens for. `DESKLING_EVENT_NAME` replaces it, so tests can
+    /// run the real hook without a running Deskling hearing their made-up agents.
+    public static var notificationName: Notification.Name {
+        Notification.Name(ProcessInfo.processInfo.environment["DESKLING_EVENT_NAME"] ?? "sh.kbr.deskling.agent-event")
+    }
 
     public var userInfo: [String: String] {
         var info = ["agent": agent, "kind": kind.rawValue, "session": session, "project": project]

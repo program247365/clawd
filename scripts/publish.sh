@@ -13,7 +13,11 @@ xcrun stapler validate -q "$DMG" || { echo "$DMG is not notarized. Run 'make rel
 if gh release view "v$VERSION" >/dev/null 2>&1; then echo "v$VERSION is already released. Bump apps/deskling/VERSION." >&2; exit 1; fi
 
 if [ -n "${NOTES:-}" ]; then notes=(--notes-file "$NOTES"); else notes=(--generate-notes); fi
-gh release create "v$VERSION" "$DMG" apps/deskling/dist/Deskling.dmg --target main --title "Deskling $VERSION" "${notes[@]}"
+# Also as Clawd.dmg: links to releases/latest/download/Clawd.dmg from before the rename keep working.
+legacy="$(mktemp -d)"
+cp apps/deskling/dist/Deskling.dmg "$legacy/Clawd.dmg"
+gh release create "v$VERSION" "$DMG" apps/deskling/dist/Deskling.dmg "$legacy/Clawd.dmg" --target main --title "Deskling $VERSION" "${notes[@]}"
+rm -rf "$legacy"
 
 sha="$(shasum -a 256 "$DMG" | cut -d' ' -f1)"
 
