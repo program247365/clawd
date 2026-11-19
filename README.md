@@ -69,7 +69,7 @@ The repo holds two apps:
 | `apps/clawd` | the Mac app (Swift package) |
 | `apps/website` | the clawd.kbr.sh site and the animation files |
 
-Building needs a Swift 6 toolchain (Xcode 16 or newer). From the repository root:
+Building needs a Swift 6 toolchain (Xcode 16 or newer). Everything runs from the repository root; `make` on its own lists every task.
 
 ```sh
 make check
@@ -80,20 +80,22 @@ make check
 To run a local build of the app:
 
 ```sh
-make -C apps/clawd run
+make run
 ```
 
-That builds `apps/clawd/dist/Clawd.app` for your Mac with an ad-hoc signature. Other targets regenerate things made from the art: `icons`, `thumbs`, and `readme-gif`.
+That builds `apps/clawd/dist/Clawd.app` for your Mac with an ad-hoc signature. `make site` serves the website locally. Tasks that regenerate things made from the art live in the app's own Makefile: `make -C apps/clawd icons`, `thumbs`, and `readme-gif`.
 
 ### Releasing
 
-`make -C apps/clawd release` builds a universal app, signs it with a Developer ID, notarizes it with Apple, and leaves `Clawd.dmg` in `apps/clawd/dist`. It uploads nothing else. It needs notary credentials in a keychain profile, stored once:
+`make release` builds a universal app, signs it with a Developer ID, notarizes it with Apple, and leaves `Clawd.dmg` in `apps/clawd/dist`. It uploads nothing else. It needs notary credentials in a keychain profile, stored once:
 
 ```sh
 xcrun notarytool store-credentials clawd-notary --apple-id <your Apple ID> --team-id <your team ID>
 ```
 
 Set `APP_IDENTITY="Developer ID Application: You (TEAMID)"` to sign with your own identity.
+
+`make publish` then uploads that disk image as a GitHub release for the version in `apps/clawd/VERSION` and bumps the Homebrew cask. Pass `NOTES=<file>` for hand-written release notes. The website deploys on its own when `main` changes.
 
 ## License
 
