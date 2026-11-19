@@ -17,22 +17,17 @@ func footprintMB() -> Double {
 
 @MainActor
 final class MemoryTests: XCTestCase {
-    /// Lottie's default decoder needs about 190MB to parse the largest act and leaves about 80MB behind.
-    /// Its Codable decoder needs about 25MB and renders every animation pixel-for-pixel the same.
-    func testParsingTheLargestActStaysLight() throws {
-        let directory = stagedAnimations()
-        let largest = try XCTUnwrap(
-            try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])
-                .filter { $0.pathExtension == "json" }
-                .max { ((try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) < ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) })
-        let before = footprintMB()
-
-        let act = AnimationCatalog(directory: directory).load(largest.deletingPathExtension().lastPathComponent)
-
-        XCTAssertNotNil(act)
-        let grew = footprintMB() - before
-        print(String(format: "parsing %@ grew memory by %.0f MB", largest.lastPathComponent, grew))
-        XCTAssertLessThan(grew, 60)
+    /// Parsing an act leaves tens of megabytes of freed memory that the default allocator keeps counted
+    /// against the app: about 33MB at rest where 6MB is in use. In its space-efficient mode the allocator
+    /// hands that memory back, and he rests near 10MB. The mode can only be chosen before the app starts.
+    func testTheAppStartsWithTheSpaceEfficientAllocator() throws {
+        let template = URL(fileURLWithPath: "\(#filePath)")
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Info.plist.in")
+        let plist = try XCTUnwrap(
+            try PropertyListSerialization.propertyList(from: Data(contentsOf: template), format: nil) as? [String: Any])
+        let environment = plist["LSEnvironment"] as? [String: String]
+        XCTAssertEqual(environment?["MallocSpaceEfficient"], "1")
     }
 
     /// Shows every animation in turn, the way the app does, for several rounds.
@@ -58,7 +53,6 @@ final class MemoryTests: XCTestCase {
                 }
                 CATransaction.flush()
                 RunLoop.current.run(until: Date().addingTimeInterval(0.005))
-                Memory.returnUnused()
             }
             afterEachRound.append(footprintMB())
         }

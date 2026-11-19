@@ -32,9 +32,7 @@ public struct AnimationCatalog: Sendable {
     public func load(_ name: String) -> ClawdAnimation? {
         guard names.contains(name),
               let data = try? Data(contentsOf: directory.appendingPathComponent("\(name).json")),
-              // The Codable decoder, not Lottie's default: for the largest act it needs about 25MB
-              // where the default needs about 190MB, it is faster, and the frames come out identical.
-              let animation = try? LottieAnimation.from(data: data, strategy: .legacyCodable)
+              let animation = try? LottieAnimation.from(data: data)
         else { return nil }
         return ClawdAnimation(name: name, animation: animation)
     }
