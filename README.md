@@ -33,17 +33,15 @@ The cast:
 | **Sol** | The sun, up early and out late. |
 | **Luna** | The moon, sleepy and soft. |
 
-See Clawd in a browser at **[clawd.kbr.sh](https://clawd.kbr.sh)**.
+Meet the cast, and try them on the page, at **[deskling.kbr.sh](https://deskling.kbr.sh)**.
 
 ## Install
 
-The current release is still called Clawd and has only Clawd; the next release ships as Deskling with the whole cast, and the cask becomes `deskling`. If you installed with Homebrew, `brew upgrade` moves you across.
-
 ```sh
-brew install --cask program247365/tap/clawd
+brew install --cask program247365/tap/deskling
 ```
 
-Or download [Clawd.dmg](https://github.com/program247365/clawd/releases/latest/download/Clawd.dmg), open it, and drag the app to Applications.
+Or download [Deskling.dmg](https://github.com/program247365/clawd/releases/latest/download/Deskling.dmg), open it, and drag Deskling to Applications.
 
 Requires macOS 14 or later, on Apple silicon or Intel. The app is signed and notarized. Windows and Linux are planned.
 
@@ -87,6 +85,8 @@ Your Deskling can act out what your coding agents are doing (thinking, typing, e
 
 **Codex:** open Settings, choose **Connect Codex**, then trust the new hooks in Codex with `/hooks`. Connecting adds Deskling's hooks to `~/.codex/hooks.json` without touching any you already have, and keeps the previous file as `hooks.json.before-deskling`. **Disconnect Codex** removes only Deskling's hooks. Codex calls them over when it asks for approval (its `PermissionRequest` hook). Codex has no idle notification, so they only celebrate when a Codex turn ends.
 
+When more than one agent is waiting, the bubble names them if they fit ("api and web need you") and counts them otherwise, and they keep waving until the last one is answered. The menu lists each waiting session, like "Claude Code · api · 3 min"; choose one to stop waving for it, or **Dismiss All**.
+
 The hooks send the app only the event type, the session id, the project folder's name, and the tool name. Prompts, commands, and file contents never leave the agent. If the app isn't running, the hooks do nothing. Any other agent can join in by running `Deskling.app/Contents/Helpers/deskling-hook --agent <name> --event <kind>`. The event kinds are listed in `apps/deskling/Sources/DesklingHook/main.swift`.
 
 ## Development
@@ -96,7 +96,7 @@ The repo holds two apps:
 | Path | What |
 | --- | --- |
 | `apps/deskling` | the Mac app (Swift package) |
-| `apps/website` | the clawd.kbr.sh site and the animation files |
+| `apps/website` | the deskling.kbr.sh site, and Clawd's animation files |
 
 Building needs a Swift 6 toolchain (Xcode 16 or newer). Everything runs from the repository root; `make` on its own lists every task.
 
@@ -104,7 +104,7 @@ Building needs a Swift 6 toolchain (Xcode 16 or newer). Everything runs from the
 make check
 ```
 
-`make check` verifies every act on the site has its animation and thumbnail, builds the app, and runs the tests, including one that renders every animation.
+`make check` verifies every character's acts have their animations, that the site's copies of the characters match the app's, and that the site shows the version being released; then it builds the app and runs the tests, including ones that render every animation.
 
 To run a local build of the app:
 
@@ -112,7 +112,7 @@ To run a local build of the app:
 make run
 ```
 
-That builds `apps/deskling/dist/Deskling.app` for your Mac with an ad-hoc signature. `make site` serves the website locally. Tasks that regenerate things made from the art live in the app's own Makefile: `make -C apps/deskling icons`, `thumbs`, and `readme-gif`.
+That builds `apps/deskling/dist/Deskling.app` for your Mac with an ad-hoc signature. `make site` serves the website locally. Tasks that regenerate things made from the art live in the app's own Makefile: `make -C apps/deskling icons`, `readme-gif`, and `site-characters`, which copies the characters into the website, renders their stills, and redraws the site's cast background.
 
 ### Drawing a new character
 

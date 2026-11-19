@@ -5,7 +5,7 @@ cask "deskling" do
   url "https://github.com/program247365/clawd/releases/download/v#{version}/Deskling-#{version}.dmg"
   name "Deskling"
   desc "Pixel characters that walk your desktop and react to your coding agents"
-  homepage "https://clawd.kbr.sh/"
+  homepage "https://deskling.kbr.sh/"
 
   depends_on macos: :sonoma
 

@@ -16,7 +16,7 @@ Claude Code users: developers who already know Clawd from Claude Code and Anthro
 
 ## Product Purpose
 
-Deskling (formerly Clawd) is a free, open-source Mac menubar app that puts a pixel character on the desktop: Clawd, Octo, Minx, Sol, or Luna, picked on a character-select screen. They walk along the bottom of the screen and stop to perform their acts; with "Let them roam!" in Settings they sometimes teleport to perform somewhere else. With the Claude Code plugin or Codex hooks connected, they act out what the agent is doing and come and wave when it needs you. clawd.kbr.sh is where people install it. Success for the site is an install: a download of the DMG or a `brew install`.
+Deskling (formerly Clawd) is a free, open-source Mac menubar app that puts a pixel character on the desktop: Clawd, Octo, Minx, Sol, or Luna, picked on a character-select screen. They walk along the bottom of the screen and stop to perform their acts; with "Let them roam!" in Settings they sometimes teleport to perform somewhere else. With the Claude Code plugin or Codex hooks connected, they act out what the agent is doing and come and wave when it needs you. deskling.kbr.sh is where people install it (clawd.kbr.sh redirects there). Success for the site is an install: a download of the DMG or a `brew install`.
 
 ## Positioning
 
@@ -46,7 +46,7 @@ The real Clawd, with his original animations, walking on your actual desktop rat
 - Voice: a small personal side project. First person, playful, short. One person made it for fun; no company is behind it.
 - Must appear verbatim: "Clawd is Anthropic's character. This is an unofficial fan project."
 - The unofficial status must be clear and prominent (Kevin's instruction), near the top of the page and next to the install action, not only in the footer. Nothing on the page may read as coming from Anthropic.
-- Credit: "by Kevin B. Ridgway", linking to https://kbr.sh?source=clawd-site. No company name and no email address.
+- Credit: "by Kevin B. Ridgway", linking to https://kbr.sh?source=deskling-site. No company name and no email address.
 - Source: https://github.com/program247365/clawd
 - Clawd's own art sets his colors: body orange `#d97757`, eyes `#141413`. The app icon puts him on cream `#faf9f5`.
 
