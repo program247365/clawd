@@ -3,7 +3,7 @@ name: vm-testing
 description: Use when a change to the Mac app needs testing on a real macOS desktop you can lock, relaunch, and leave running without touching the user's own session - lock screen behaviour, memory over time, launch and entrance, or a different macOS version. Covers starting the Tart VM with a visible window, getting a build into it, running the app, locking the screen, and reading where his window is.
 ---
 
-# Testing Clawd in a macOS VM
+# Testing Deskling in a macOS VM
 
 The VM is a [Tart](https://tart.run) macOS guest. Everything goes through one script, `scripts/vm.sh`,
 run from the repo root. The common steps are also make tasks: `make vm`, `make vm-push`, `make vm-record`,
@@ -31,7 +31,7 @@ Its own state (ssh key, shared folder) goes in `.vm/`, which is git-ignored.
 V=scripts/vm.sh
 $V up                     # clone if needed, boot with a visible window, wait for the desktop
 $V push                   # build the app and probes, copy them to ~/s in the guest
-$V gui open /Users/admin/s/Clawd.app      # run the app the way a user does
+$V gui open /Users/admin/s/Deskling.app      # run the app the way a user does
 $V gui /Users/admin/s/lock                # lock the guest screen now
 $V ssh 'tail -5 ~/s/watch.log'            # read results
 $V stop
@@ -41,7 +41,7 @@ $V stop
   user's desktop session; anything that opens a window or talks to the window server needs `gui`.
 - Open the app with `open`, never by running the binary. `Info.plist` settings such as
   `MallocSpaceEfficient` only apply when macOS launches it.
-- Settings are plain defaults: `vm.sh gui defaults write sh.kbr.clawd visitsLockScreen -bool true`
+- Settings are plain defaults: `vm.sh gui defaults write sh.kbr.deskling visitsLockScreen -bool true`
   (also `roams`, and `size` = `small` | `medium` | `large`). Set them before `open`.
 
 ## What to run

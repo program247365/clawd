@@ -41,7 +41,7 @@ func sample() {
     let all = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
     var clawd = ""
     var bounds = CGRect.zero
-    for w in all where (w["kCGWindowOwnerName"] as? String) == "Clawd" {
+    for w in all where (w["kCGWindowOwnerName"] as? String) == "Deskling" {
         let b = CGRect(dictionaryRepresentation: w["kCGWindowBounds"] as! CFDictionary) ?? .zero
         guard (w["kCGWindowLayer"] as? Int) == 25, b.width >= 100, b.width <= 300 else { continue }
         let id = w["kCGWindowNumber"] as! Int

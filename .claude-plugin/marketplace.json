@@ -1,0 +1,12 @@
+{
+  "name": "deskling",
+  "owner": { "name": "Kevin B. Ridgway" },
+  "description": "Deskling: little pixel characters on your Mac desktop that react to your coding agents.",
+  "plugins": [
+    {
+      "name": "deskling",
+      "source": "./plugins/claude-code",
+      "description": "Your Deskling acts out what Claude Code is doing and comes to tell you when it needs you. Needs the Deskling Mac app."
+    }
+  ]
+}
