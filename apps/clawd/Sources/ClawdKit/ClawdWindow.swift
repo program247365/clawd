@@ -72,12 +72,16 @@ public final class ClawdWindow {
         applyTransform()
     }
 
+    /// Called each time he is shown.
+    public var didShow: (() -> Void)?
+
     /// Shows him at full size and opacity without activating the app.
     public func show() {
         scale = 1
         animationView.alphaValue = 1
         applyTransform()
         panel.orderFrontRegardless()
+        didShow?()
     }
 
     public func hide() {

@@ -22,6 +22,11 @@
 	<string>AppIcon</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
+	<key>LSEnvironment</key>
+	<dict>
+		<key>MallocSpaceEfficient</key>
+		<string>1</string>
+	</dict>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
