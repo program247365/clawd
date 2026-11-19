@@ -48,7 +48,8 @@ final class AgentEventTests: XCTestCase {
     }
 
     func testWhereAWaitingAgentRunsRoundTripsAndIsKept() {
-        let origin = AgentEvent.Origin(processes: [412, 77, 9], bundleID: "com.mitchellh.ghostty")
+        let origin = AgentEvent.Origin(
+            processes: [412, 77, 9], bundleID: "com.apple.Terminal", tty: "/dev/ttys004", focusURL: "warp://session/abc")
         let event = AgentEvent(agent: "claude", kind: .needsInput, session: "a", project: "api", origin: origin)
         XCTAssertEqual(AgentEvent(userInfo: event.userInfo), event)
 
@@ -352,6 +353,7 @@ final class ClawdHookTests: XCTestCase {
             // The test runner started the hook, so it is the nearest process above it.
             XCTAssertEqual(event.origin?.processes.first, ProcessInfo.processInfo.processIdentifier)
             XCTAssertEqual(event.origin?.bundleID, "com.example.terminal")
+            XCTAssertEqual(event.origin?.focusURL, "warp://session/abc123")
             received.fulfill()
         }
         defer { DistributedNotificationCenter.default().removeObserver(observer) }
@@ -359,7 +361,10 @@ final class ClawdHookTests: XCTestCase {
         let process = Process()
         process.executableURL = binary
         process.arguments = ["--agent", "codex"]
-        process.environment = ["DESKLING_EVENT_NAME": channel, "__CFBundleIdentifier": "com.example.terminal"]
+        process.environment = [
+            "DESKLING_EVENT_NAME": channel, "__CFBundleIdentifier": "com.example.terminal",
+            "TERM_PROGRAM": "WarpTerminal", "WARP_FOCUS_URL": "warp://session/abc123",
+        ]
         let input = Pipe()
         let output = Pipe()
         process.standardInput = input

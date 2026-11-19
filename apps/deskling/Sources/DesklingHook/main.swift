@@ -24,6 +24,21 @@ func parent(of pid: pid_t) -> pid_t? {
     return ppid > 1 ? ppid : nil
 }
 
+/// The terminal device of the nearest process above this one that has one, e.g. "/dev/ttys003".
+/// The hook itself may run without one; the agent above it does.
+func terminalDevice(of chain: [Int32]) -> String? {
+    for pid in chain {
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
+        guard sysctl(&mib, 4, &info, &size, nil, 0) == 0, size > 0 else { continue }
+        let device = info.kp_eproc.e_tdev
+        guard device != -1, let name = devname(device, S_IFCHR) else { continue }
+        return "/dev/" + String(cString: name)
+    }
+    return nil
+}
+
 /// The processes above this one, nearest first: the agent, its shell, and somewhere up there the terminal or editor.
 func ancestors() -> [Int32] {
     var chain: [Int32] = []
@@ -56,8 +71,13 @@ if let kind = value(after: "--event", in: arguments).flatMap(AgentEvent.Kind.ini
 
 // Only a waiting agent can be clicked through to, so only then is it worth looking up where it runs.
 if event?.kind == .needsInput {
+    let environment = ProcessInfo.processInfo.environment
+    let chain = ancestors()
     event?.origin = AgentEvent.Origin(
-        processes: ancestors(), bundleID: ProcessInfo.processInfo.environment["__CFBundleIdentifier"])
+        processes: chain, bundleID: environment["__CFBundleIdentifier"],
+        tty: terminalDevice(of: chain),
+        // Apps opened from a Warp shell (VS Code via `code .`) inherit the variable; only Warp's own shells set TERM_PROGRAM to it.
+        focusURL: environment["TERM_PROGRAM"] == "WarpTerminal" ? environment["WARP_FOCUS_URL"] : nil)
 }
 
 if let event {

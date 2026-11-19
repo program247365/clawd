@@ -37,6 +37,8 @@
 	<string>DG2iFMiFVomtp3p9L0JHNcvh/xuh1bwiAMtYf0jbb+4=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Clicking your Deskling while an agent needs you switches Terminal to that agent's tab.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Kevin B. Ridgway</string>
 </dict>

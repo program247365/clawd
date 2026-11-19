@@ -22,10 +22,16 @@ public struct AgentEvent: Equatable, Sendable {
         public let processes: [Int32]
         /// macOS's `__CFBundleIdentifier` for the shell, e.g. "com.apple.Terminal". Survives tmux, which breaks the process chain.
         public let bundleID: String?
+        /// The agent's terminal device, e.g. "/dev/ttys003": how Terminal finds the tab.
+        public let tty: String?
+        /// Warp's `WARP_FOCUS_URL` for the session, e.g. "warp://session/…": opening it brings up that tab.
+        public let focusURL: String?
 
-        public init(processes: [Int32], bundleID: String?) {
+        public init(processes: [Int32], bundleID: String?, tty: String? = nil, focusURL: String? = nil) {
             self.processes = processes
             self.bundleID = bundleID
+            self.tty = tty
+            self.focusURL = focusURL
         }
     }
 
@@ -50,6 +56,8 @@ public struct AgentEvent: Equatable, Sendable {
         if let origin {
             info["processes"] = origin.processes.map(String.init).joined(separator: ",")
             info["bundleID"] = origin.bundleID
+            info["tty"] = origin.tty
+            info["focusURL"] = origin.focusURL
         }
         return info
     }
@@ -63,7 +71,10 @@ public struct AgentEvent: Equatable, Sendable {
         else { return nil }
         let processes = (info["processes"] as? String)?.split(separator: ",").compactMap { Int32($0) }
         let bundleID = info["bundleID"] as? String
-        let origin = processes == nil && bundleID == nil ? nil : Origin(processes: processes ?? [], bundleID: bundleID)
+        let tty = info["tty"] as? String
+        let focusURL = info["focusURL"] as? String
+        let origin = processes == nil && bundleID == nil && tty == nil && focusURL == nil
+            ? nil : Origin(processes: processes ?? [], bundleID: bundleID, tty: tty, focusURL: focusURL)
         self.init(agent: agent, kind: kind, session: session, project: project, tool: info["tool"] as? String, origin: origin)
     }
 

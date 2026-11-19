@@ -80,7 +80,7 @@ macOS has no official way for an app to appear on the lock screen. Deskling gets
 
 ### Claude Code and Codex
 
-Your Deskling can act out what your coding agents are doing (thinking, typing, editing, browsing), celebrate when one finishes, and come to the middle of the screen to wave when one is waiting on you. With more than one display they come to the one your cursor is on, follow you if you move, and go home once you answer. The wave lasts until you answer. Click them, or their speech bubble, to jump to the terminal or editor the agent is running in; if there's more than one, the one that has waited longest. Clicks only land on them while they wave; the rest of the time they pass straight through. Both are on by default in Settings and do nothing until an agent is connected.
+Your Deskling can act out what your coding agents are doing (thinking, typing, editing, browsing), celebrate when one finishes, and come to the middle of the screen to wave when one is waiting on you. With more than one display they come to the one your cursor is on, follow you if you move, and go home once you answer. The wave lasts until you answer. Click them, or their speech bubble, to jump to the agent; if there's more than one, the one that has waited longest. In Warp and Terminal that's the agent's own tab (Terminal asks once for permission); in other terminals and editors, the app. Clicks only land on them while they wave; the rest of the time they pass straight through. Both are on by default in Settings and do nothing until an agent is connected.
 
 **Claude Code:** run this in a session:
 
@@ -92,7 +92,7 @@ Your Deskling can act out what your coding agents are doing (thinking, typing, e
 
 When more than one agent is waiting, the bubble names them if they fit ("api and web need you") and counts them otherwise, and they keep waving until the last one is answered. The menu lists each waiting session, like "Claude Code · api · 3 min"; choose one to stop waving for it, or **Dismiss All**.
 
-The hooks send the app only the event type, the session id, the project folder's name, and the tool name. When an agent is waiting on you they also send the process ids above the hook and the app the shell was started from, so a click can find your terminal. Prompts, commands, and file contents never leave the agent. If the app isn't running, the hooks do nothing. Any other agent can join in by running `Deskling.app/Contents/Helpers/deskling-hook --agent <name> --event <kind>`. The event kinds are listed in `apps/deskling/Sources/DesklingHook/main.swift`.
+The hooks send the app only the event type, the session id, the project folder's name, and the tool name. When an agent is waiting on you they also send the process ids above the hook, the app the shell was started from, the terminal device, and in Warp the tab's `WARP_FOCUS_URL`, so a click can find your terminal tab. Prompts, commands, and file contents never leave the agent. If the app isn't running, the hooks do nothing. Any other agent can join in by running `Deskling.app/Contents/Helpers/deskling-hook --agent <name> --event <kind>`. The event kinds are listed in `apps/deskling/Sources/DesklingHook/main.swift`.
 
 ## Development
 

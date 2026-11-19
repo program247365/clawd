@@ -36,15 +36,11 @@ public final class AgentListener {
         }
     }
 
-    /// Takes you to the agent that has waited longest. If there is nowhere to take you, the click
+    /// Takes you to the agent that has waited longest, in its very tab where the terminal allows. If there is nowhere to take you, the click
     /// means "seen it" and he stops waving for that one.
     public func goToWaiting() {
         guard let session = desk.waiting.first else { return }
-        if let app = AgentApp.find(session.origin) {
-            AgentApp.bringForward(app)
-        } else {
-            dismiss(session.id)
-        }
+        if !AgentApp.goTo(session.origin) { dismiss(session.id) }
     }
 
     public func dismissAll() {
