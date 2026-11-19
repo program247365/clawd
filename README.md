@@ -37,7 +37,7 @@ See Clawd in a browser at **[clawd.kbr.sh](https://clawd.kbr.sh)**.
 
 ## Install
 
-The current release is still called Clawd and has only Clawd; the next release ships as Deskling with the whole cast.
+The current release is still called Clawd and has only Clawd; the next release ships as Deskling with the whole cast, and the cask becomes `deskling`. If you installed with Homebrew, `brew upgrade` moves you across.
 
 ```sh
 brew install --cask program247365/tap/clawd
@@ -146,7 +146,7 @@ xcrun notarytool store-credentials clawd-notary   # the profile keeps its old na
 
 Set `APP_IDENTITY="Developer ID Application: You (TEAMID)"` to sign with your own identity.
 
-`make publish` then uploads that disk image as a GitHub release for the version in `apps/deskling/VERSION` and bumps the Homebrew cask. Until the cask is renamed from `clawd` to `deskling` it refuses to run, because the cask still downloads `Clawd.dmg`; rename the cask, then run it with `CASK_RENAMED=1`. Pass `NOTES=<file>` for hand-written release notes. The website deploys on its own when `main` changes.
+`make publish` then uploads that disk image as a GitHub release for the version in `apps/deskling/VERSION` and updates the Homebrew cask from `scripts/deskling.rb.in`, in one commit to the tap. The first Deskling release also renames the cask from `clawd` to `deskling` and records the rename in the tap's `cask_renames.json`, so `brew upgrade` moves existing users across. Pass `NOTES=<file>` for hand-written release notes. The website deploys on its own when `main` changes.
 
 ## License
 
