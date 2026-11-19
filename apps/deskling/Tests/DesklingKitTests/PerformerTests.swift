@@ -52,4 +52,73 @@ final class PerformerTests: XCTestCase {
         XCTAssertFalse(performer.isRunning)
         XCTAssertFalse(window.isVisible)
     }
+
+    private func settings() -> Settings {
+        Settings(defaults: UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!)
+    }
+
+    /// Lets the routine run until `condition` holds or `seconds` pass.
+    private func eventually(within seconds: Double = 3, _ condition: () -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while Date() < deadline {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return condition()
+    }
+
+    func testAnAlertComesToTheScreenYouAreOnAndGoesHomeAfter() async {
+        let other = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+        let window = CharacterWindow(size: CharacterSize.medium.size)
+        let performer = Performer(
+            character: Character.clawd(directory: stagedAnimations()), window: window, settings: settings(),
+            visibleFrame: { self.screen }, alertFrame: { other },
+            cursorLocation: { CGPoint(x: -5000, y: -5000) }, idleTime: { 0 })
+        defer { performer.stop() }
+        performer.start()
+
+        performer.alert("api needs you")
+        let arrived = await eventually { other.contains(window.frame) }
+        XCTAssertTrue(arrived, "he should wave on the screen with the cursor, not stay on his own")
+
+        performer.clearAlert()
+        let home = await eventually { self.screen.contains(window.frame) }
+        XCTAssertTrue(home, "once answered he goes back to his own screen")
+    }
+
+    func testHeNapsWhileYouAreAwayAndWakesWhenYouComeBack() async {
+        var idle: TimeInterval = 0
+        let window = CharacterWindow(size: CharacterSize.medium.size)
+        let performer = Performer(
+            character: Character.clawd(directory: stagedAnimations()), window: window, settings: settings(),
+            visibleFrame: { self.screen }, cursorLocation: { CGPoint(x: -5000, y: -5000) }, idleTime: { idle })
+        defer { performer.stop() }
+        performer.start()
+        let stayedAwake = await eventually(within: 0.5) { performer.isNapping }
+        XCTAssertFalse(stayedAwake)
+
+        idle = Performer.napAfter + 1
+        let napped = await eventually { performer.isNapping }
+        XCTAssertTrue(napped)
+
+        idle = 0.2
+        let woke = await eventually { !performer.isNapping }
+        XCTAssertTrue(woke)
+    }
+
+    func testAnAlertWakesHim() async {
+        let window = CharacterWindow(size: CharacterSize.medium.size)
+        let performer = Performer(
+            character: Character.clawd(directory: stagedAnimations()), window: window, settings: settings(),
+            visibleFrame: { self.screen }, alertFrame: { self.screen },
+            cursorLocation: { CGPoint(x: -5000, y: -5000) }, idleTime: { Performer.napAfter + 1 })
+        defer { performer.stop() }
+        performer.start()
+        let napped = await eventually { performer.isNapping }
+        XCTAssertTrue(napped)
+
+        performer.alert("api needs you")
+        XCTAssertFalse(performer.isNapping)
+        XCTAssertEqual(performer.alertText, "api needs you")
+    }
 }

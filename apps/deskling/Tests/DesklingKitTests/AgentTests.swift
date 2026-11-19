@@ -184,6 +184,12 @@ final class RosterTests: XCTestCase {
         XCTAssertEqual(roster.character(id: nil).id, Character.clawdID)
     }
 
+    func testClawdKeepsEveryOneOfHisOriginalActs() {
+        let clawd = Character.clawd(directory: stagedAnimations())
+        XCTAssertEqual(clawd.routineActs, clawd.catalog.actNames)
+        XCTAssertTrue(clawd.routineActs.contains("looking"), "his looking is a real act, not one frame")
+    }
+
     func testEveryClawdRoleHasItsAct() {
         let clawd = Character.clawd(directory: stagedAnimations())
         for role in Role.allCases {
@@ -262,7 +268,7 @@ final class PerformerAgentTests: XCTestCase {
         let performer = Performer(
             character: Character.clawd(directory: stagedAnimations()), window: window,
             settings: Settings(defaults: UserDefaults(suiteName: "clawd.tests.\(UUID().uuidString)")!),
-            visibleFrame: { self.screen }, cursorLocation: cursor)
+            visibleFrame: { self.screen }, alertFrame: { self.screen }, cursorLocation: cursor, idleTime: { 0 })
         return (performer, window)
     }
 
@@ -368,6 +374,7 @@ final class DrawnCharacterTests: XCTestCase {
             let walking = try XCTUnwrap(catalog.load("walking"), character.id)
             XCTAssertGreaterThan(CGFloat(walking.frameCount), character.standingFrame, character.id)
             XCTAssertNotNil(catalog.load("waving"), "\(character.id) has no wave for the entrance")
+            XCTAssertTrue(Character.drawnReservedActs.isDisjoint(with: character.routineActs), character.id)
             for name in catalog.names {
                 let item = try XCTUnwrap(catalog.load(name), "\(character.id)/\(name)")
                 let image = try XCTUnwrap(FrameRenderer.render(item.animation, frame: 0, pixelSize: CGSize(width: 275, height: 185)))

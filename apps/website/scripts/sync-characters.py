@@ -14,8 +14,9 @@ import sys
 SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(os.path.dirname(SITE), "deskling", "characters")
 TARGET = os.path.join(SITE, "assets", "characters")
-# Played by the page's walker and the lineup, never as a random act.
-NOT_ACTS = {"walking", "ready"}
+# Played by the page's walker and the lineup, never as a random act. The rest have jobs of their own
+# in the app (Character.drawnReservedActs): a one-frame pose, and what only you or an agent set off.
+NOT_ACTS = {"walking", "ready", "looking", "celebrate", "pet", "nap", "wake"}
 
 CLAWD = {
     "id": "clawd",

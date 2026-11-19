@@ -1,6 +1,6 @@
 import Foundation
 
-/// The jobs a character's acts can be asked to do when a coding agent does something.
+/// The jobs a character's acts can be asked to do when a coding agent, or you, does something.
 public enum Role: String, CaseIterable, Sendable {
     /// Thinking over a new prompt.
     case think
@@ -18,6 +18,12 @@ public enum Role: String, CaseIterable, Sendable {
     case compact
     /// The agent finished.
     case celebrate
+    /// You rubbed the cursor back and forth over them.
+    case pet
+    /// You have been away a while; played on a loop until you come back.
+    case nap
+    /// You came back while they were napping.
+    case wake
 }
 
 /// Someone who can live on the desktop: a folder of animations plus how to walk with them.
@@ -36,6 +42,8 @@ public struct Character: @unchecked Sendable, Equatable, Identifiable {
     public let roles: [Role: [String]]
     /// Colors punched out of the menubar silhouette (the eyes), as RGB.
     public let iconHoles: [(Int, Int, Int)]
+    /// Animations in the folder that have a job of their own and never play as a random act.
+    public let reservedActs: Set<String>
 
     public static func == (a: Character, b: Character) -> Bool {
         a.id == b.id && a.directory == b.directory
@@ -47,7 +55,8 @@ public struct Character: @unchecked Sendable, Equatable, Identifiable {
     public init(
         id: String, name: String, blurb: String, directory: URL,
         walkCycle: ClosedRange<CGFloat>, standingFrame: CGFloat, lookUpFrame: CGFloat = 0,
-        roles: [Role: [String]], iconHoles: [(Int, Int, Int)] = Character.defaultIconHoles
+        roles: [Role: [String]], iconHoles: [(Int, Int, Int)] = Character.defaultIconHoles,
+        reservedActs: Set<String> = []
     ) {
         self.id = id
         self.name = name
@@ -58,9 +67,17 @@ public struct Character: @unchecked Sendable, Equatable, Identifiable {
         self.lookUpFrame = lookUpFrame
         self.roles = roles
         self.iconHoles = iconHoles
+        self.reservedActs = reservedActs
     }
 
     public var catalog: AnimationCatalog { AnimationCatalog(directory: directory) }
+
+    /// What they pick from when they stop to perform: every act but the reserved ones.
+    public var routineActs: [String] { catalog.actNames.filter { !reservedActs.contains($0) } }
+
+    /// A drawn character's one-frame eyes-up pose, and the tags only you or an agent can set off.
+    /// A celebration with no agent behind it would make the real one mean less.
+    public static let drawnReservedActs: Set<String> = ["looking", "celebrate", "pet", "nap", "wake"]
 
     /// The acts that can play `role` and actually exist in this character's folder.
     public func acts(for role: Role) -> [String] {
@@ -79,6 +96,7 @@ public struct Character: @unchecked Sendable, Equatable, Identifiable {
                 .think: ["thinking"], .type: ["laptop"], .write: ["notebook"], .browse: ["phone"],
                 .search: ["lightbulb"], .delegate: ["juggling"], .compact: ["meditating"],
                 .celebrate: ["confetti-happy", "dancing-happy", "jumping-happy"],
+                .pet: ["heart"], .nap: ["snooze"], .wake: ["excited"],
             ])
     }
 
@@ -96,7 +114,8 @@ public struct Character: @unchecked Sendable, Equatable, Identifiable {
             id: folder.lastPathComponent, name: name, blurb: info["blurb"] as? String ?? "",
             directory: folder.appendingPathComponent("animations"), walkCycle: CGFloat(cycle[0])...CGFloat(cycle[1]), standingFrame: CGFloat(standing),
             roles: Dictionary(uniqueKeysWithValues: Role.allCases.map { ($0, [$0.rawValue]) }),
-            iconHoles: (info["iconHoles"] as? [String])?.compactMap(Self.rgb(hex:)) ?? Self.defaultIconHoles)
+            iconHoles: (info["iconHoles"] as? [String])?.compactMap(Self.rgb(hex:)) ?? Self.defaultIconHoles,
+            reservedActs: Self.drawnReservedActs)
     }
 
     /// "#e9b03a" as (233, 176, 58).

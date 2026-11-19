@@ -63,6 +63,8 @@ The first time, you pick your Deskling on a character-select screen: arrow keys 
 | **Walks and performs** | They patrol the bottom of the screen, on top of the Dock, and play each of their acts once before repeating any. |
 | **Roams, if you let them** | They stay at the bottom by default. Choose "Let them roam!" in Settings and about one time in four they pop up somewhere else to perform. |
 | **Notices you** | Bring the cursor near and they stop, turn to face it, and look up if it's above them. Leave it there and after a while they get back to work. |
+| **Likes a pet** | Rub the cursor back and forth over them and they show you they like it. No click needed. |
+| **Naps while you're away** | After five minutes without a key press or a mouse move they fall asleep where they stand, and wake up when you come back. |
 | **Visits your lock screen** | Turn on "Bring them along to the lock screen" and they keep walking while your Mac is locked. |
 | **Stays out of the way** | They sit above your windows but never take a click, a scroll, or focus, and they step aside for fullscreen apps. |
 | **Fits your screen** | Small, Medium, or Large, from the menu. |
@@ -75,7 +77,7 @@ macOS has no official way for an app to appear on the lock screen. Deskling gets
 
 ### Claude Code and Codex
 
-Your Deskling can act out what your coding agents are doing (thinking, typing, editing, browsing), celebrate when one finishes, and walk to the middle of the screen to wave when one is waiting on you. The wave lasts until you answer. Both are on by default in Settings and do nothing until an agent is connected.
+Your Deskling can act out what your coding agents are doing (thinking, typing, editing, browsing), celebrate when one finishes, and come to the middle of the screen to wave when one is waiting on you. With more than one display they come to the one your cursor is on, follow you if you move, and go home once you answer. The wave lasts until you answer. Both are on by default in Settings and do nothing until an agent is connected.
 
 **Claude Code:** run this in a session:
 
@@ -129,9 +131,11 @@ The starter file is 27 x 18 pixels. One pixel is one of Clawd's body pixels, and
 | --- | --- |
 | `walk`, `stand` | Required. The step loop, and one standing frame |
 | `wave` | The entrance, the character-select pick, and the "needs you" alert |
-| `look-up` | One frame, eyes up, for when the cursor is above them |
+| `look-up` | One frame, eyes up, for when the cursor is above them. Exported as `looking`, which never plays as an act |
 | `ready` | The character-select idle, fists up. Without it, their standing pose bounces through a crouch |
-| `think`, `type`, `write`, `browse`, `search`, `delegate`, `compact`, `celebrate` | What agents are doing. Any you leave out are skipped |
+| `think`, `type`, `write`, `browse`, `search`, `delegate`, `compact`, `celebrate` | What agents are doing. Any you leave out are skipped. All but `celebrate` also play as ordinary acts |
+| `pet` | When you rub the cursor over them. Without it they play `celebrate` |
+| `nap`, `wake` | Looped while you're away, and played when you come back. Without `nap` they stand still |
 | anything else | An extra act in the routine |
 
 Set the name and blurb in `character.json`. Commit the exported `animations/` folder too, so building the app never needs Aseprite. The character shows up on the character-select screen and under **Character** in the menu, and gets a menubar icon made from their standing pose. If their eyes are not near-black, list the eye color in `character.json` as `"iconHoles": ["#e9b03a"]` so the icon cuts them out.

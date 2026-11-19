@@ -44,7 +44,7 @@ private final class Ticker: NSObject {
 @MainActor
 public final class Performer {
     private enum Mode {
-        case idle, entrance, routine, watching, reacting, alerting
+        case idle, entrance, routine, watching, reacting, alerting, napping
     }
 
     private var character: Character
@@ -72,7 +72,9 @@ public final class Performer {
     /// What he is telling you while an agent waits on you; he keeps waving until it is cleared.
     public private(set) var alertText: String?
     private let visibleFrame: () -> CGRect?
+    private let alertFrame: () -> CGRect?
     private let cursorLocation: () -> CGPoint
+    private let idleTime: () -> TimeInterval
 
     private var walking: CharacterAnimation?
     private var looking: CharacterAnimation?
@@ -81,22 +83,44 @@ public final class Performer {
     private var cursorLastNear = Date.distantPast
     /// Set when he has watched the cursor long enough; cleared once it moves away from him.
     private var ignoresCursorUntilItLeaves = false
+    private var petting = PetDetector()
 
     /// `visibleFrame` is the usable area of the display he lives on, or nil when there is none.
-    /// By default that is the first screen, the one with the menubar.
+    /// By default that is the first screen, the one with the menubar. `alertFrame` is the usable area
+    /// he comes to when an agent needs you: by default the screen the cursor is on, so you see him.
+    /// `idleTime` is how long since you last touched the keyboard, mouse, or trackpad.
     public init(
         character: Character, window: CharacterWindow, settings: Settings,
         visibleFrame: @escaping () -> CGRect? = { NSScreen.screens.first?.visibleFrame },
-        cursorLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation }
+        alertFrame: @escaping () -> CGRect? = { MainActor.assumeIsolated { Performer.cursorScreenFrame() } },
+        cursorLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
+        idleTime: @escaping () -> TimeInterval = Performer.secondsSinceInput
     ) {
         self.character = character
         catalog = character.catalog
         self.window = window
         self.settings = settings
         self.visibleFrame = visibleFrame
+        self.alertFrame = alertFrame
         self.cursorLocation = cursorLocation
-        queue = ActQueue(names: catalog.actNames)
+        self.idleTime = idleTime
+        queue = ActQueue(names: character.routineActs)
     }
+
+    /// The usable area of the screen under the cursor.
+    public static func cursorScreenFrame() -> CGRect? {
+        let cursor = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(cursor, $0.frame, false) } ?? NSScreen.screens.first
+        return screen?.visibleFrame
+    }
+
+    public nonisolated static func secondsSinceInput() -> TimeInterval {
+        // ~0 is the system's "any input event".
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+    }
+
+    /// True while he is asleep because you are away.
+    public var isNapping: Bool { mode == .napping }
 
     /// True from `start()` until `stop()`, whether or not there is a screen to show him on yet.
     public var isRunning: Bool { wantsVisible }
@@ -139,7 +163,7 @@ public final class Performer {
         guard newCharacter != character else { return }
         character = newCharacter
         catalog = newCharacter.catalog
-        queue = ActQueue(names: catalog.actNames)
+        queue = ActQueue(names: newCharacter.routineActs)
         walking = nil
         looking = nil
         refresh()
@@ -151,17 +175,21 @@ public final class Performer {
     /// while he is alerting you, or when this character has no act for the role.
     public func react(_ role: Role, saying: String? = nil) {
         guard mode == .routine || mode == .watching || mode == .reacting,
-              let name = character.acts(for: role).randomElement(using: &rng)
+              !character.acts(for: role).isEmpty
         else { return }
-        interrupt(as: .reacting) { performer, _ in
-            let catalog = performer.catalog
-            guard let act = await Task.detached(operation: { catalog.load(name) }).value,
-                  !Task.isCancelled
-            else { return }
-            if let saying { performer.say(saying) }
-            await performer.perform(act)
-            performer.bubble.hide()
-        }
+        interrupt(as: .reacting) { performer, _ in await performer.play(role, saying: saying) }
+    }
+
+    /// Plays one of the acts for `role`, if the character has any.
+    private func play(_ role: Role, saying: String? = nil) async {
+        guard let name = character.acts(for: role).randomElement(using: &rng) else { return }
+        let catalog = catalog
+        guard let act = await Task.detached(operation: { catalog.load(name) }).value,
+              !Task.isCancelled
+        else { return }
+        if let saying { say(saying) }
+        await perform(act)
+        bubble.hide()
     }
 
     /// Comes to the middle of the floor and waves with `text` over his head until `clearAlert()`.
@@ -193,13 +221,13 @@ public final class Performer {
 
     /// Stops what he is doing, runs `body`, then carries on with the routine or the alert.
     private func interrupt(as newMode: Mode, _ body: @escaping (Performer, Stage) async -> Void) {
-        guard wantsVisible, let stage else { return }
+        guard wantsVisible, stage != nil else { return }
         cancelLoop()
         mode = newMode
         loop = Task { [weak self] in
             guard let self else { return }
-            await returnToFloor(on: stage)
-            if Task.isCancelled { return }
+            await returnToFloor()
+            guard !Task.isCancelled, let stage = self.stage else { return }
             await body(self, stage)
             if Task.isCancelled { return }
             await carryOn(on: stage)
@@ -244,19 +272,21 @@ public final class Performer {
     /// The alert if an agent is waiting on you, otherwise the routine.
     private func carryOn(on stage: Stage) async {
         if alertText != nil, settings.alertsForAgents {
-            await waveForAttention(on: stage)
+            await waveForAttention()
         } else {
             await routine(on: stage)
         }
     }
 
-    /// A teleport can leave him in mid-air; anything that interrupts him brings him back down first.
-    private func returnToFloor(on stage: Stage) async {
-        guard !onFloor || window.opacity < 1 else { return }
+    /// A teleport can leave him in mid-air, and an alert on another screen away from home;
+    /// anything that interrupts him brings him back to his own floor first.
+    private func returnToFloor() async {
+        guard let stage else { return }
+        let awayFromHome = visibleFrame().map { $0 != stage.visibleFrame } ?? false
+        guard !onFloor || window.opacity < 1 || awayFromHome else { return }
         await window.pop(visible: false)
         if Task.isCancelled { return }
-        window.origin = stage.floorOrigin(x: offset)
-        onFloor = true
+        placeOnFloor()
         standStill()
         await window.pop(visible: true)
     }
@@ -265,7 +295,13 @@ public final class Performer {
         mode = .routine
         guard let walking = loadWalking() else { return }
         while !Task.isCancelled {
-            guard let name = queue.next(using: &rng) else { return }
+            guard let name = queue.next(using: &rng) else {
+                // Someone with no acts drawn yet just strolls.
+                await walk(to: Choreography.nextWalkStop(from: offset, facing: facing, maxX: stage.maxX, using: &rng),
+                           on: stage, with: walking)
+                try? await Task.sleep(for: .seconds(3))
+                continue
+            }
             // Parsed off the main thread, one act at a time, and dropped after it plays.
             let catalog = catalog
             guard let act = await Task.detached(operation: { catalog.load(name) }).value else {
@@ -323,24 +359,21 @@ public final class Performer {
         window.facing = direction
     }
 
-    /// Hurries to the middle of the floor and waves until the alert is cleared or replaced.
-    private func waveForAttention(on stage: Stage) async {
+    /// Hurries to the middle of the floor of the screen you are using and waves until the alert is
+    /// cleared or replaced. If you move to another screen, he follows.
+    private func waveForAttention() async {
         mode = .alerting
         guard let walking = loadWalking() else { return }
-        let middle = stage.maxX / 2
-        if abs(offset - middle) > stage.size.width {
-            await window.pop(visible: false)
-            if Task.isCancelled { return }
-            offset = middle
-            window.origin = stage.floorOrigin(x: offset)
-            standStill()
-            await window.pop(visible: true)
-            if Task.isCancelled { return }
-        }
-        face(.right)
-        if let alertText { say(alertText) }
         let waving = catalog.load("waving")
+        var saidIt = false
         while !Task.isCancelled {
+            let moved = await comeToMiddle(of: alertFrame())
+            if Task.isCancelled { return }
+            if moved || !saidIt {
+                face(.right)
+                if let alertText { say(alertText) }
+                saidIt = true
+            }
             if let waving { await window.play(waving) }
             if Task.isCancelled { return }
             window.pose(walking, frame: character.standingFrame)
@@ -348,33 +381,68 @@ public final class Performer {
         }
     }
 
+    /// Pops over to the middle of the floor of `frame` (his own screen when nil), unless he is
+    /// already close. True if he moved.
+    private func comeToMiddle(of frame: CGRect?) async -> Bool {
+        guard let here = stage else { return false }
+        let there = frame.map { Stage(visibleFrame: $0, size: here.size) } ?? here
+        let middle = there.maxX / 2
+        guard there != here || abs(offset - middle) > here.size.width else { return false }
+        bubble.hide()
+        await window.pop(visible: false)
+        if Task.isCancelled { return false }
+        stage = there
+        offset = middle
+        onFloor = true
+        window.origin = there.floorOrigin(x: offset)
+        standStill()
+        await window.pop(visible: true)
+        return true
+    }
+
     private func say(_ text: String) {
-        guard let screen = visibleFrame() else { return }
+        guard let screen = stage?.visibleFrame ?? visibleFrame() else { return }
         bubble.show(text, above: window.frame, within: screen)
     }
 
     // MARK: Cursor
 
+    /// Eight looks a second is plenty to notice a cursor and costs next to nothing. While he watches
+    /// it he looks thirty times a second, fast enough to feel the cursor rubbed back and forth over him.
+    static let glanceInterval: TimeInterval = 1.0 / 8
+    static let watchInterval: TimeInterval = 1.0 / 30
+
     private func startCursorWatch() {
         guard cursorTimer == nil else { return }
-        // Eight looks a second is plenty to notice a cursor and costs next to nothing.
-        let timer = Timer(timeInterval: 1.0 / 8, repeats: true) { [weak self] _ in
+        watchCursor(every: Self.glanceInterval)
+    }
+
+    private func watchCursor(every interval: TimeInterval) {
+        guard cursorTimer?.timeInterval != interval else { return }
+        cursorTimer?.invalidate()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.cursorTick() }
         }
         RunLoop.main.add(timer, forMode: .common)
         cursorTimer = timer
     }
 
+    /// How long you must be away before he naps.
+    public static let napAfter: TimeInterval = 5 * 60
+
     /// How long he watches before going back to his routine, and how long the cursor must be gone first.
     static let longestWatch: TimeInterval = 20
     static let watchLinger: TimeInterval = 1
 
     private func cursorTick() {
+        defer { watchCursor(every: mode == .watching ? Self.watchInterval : Self.glanceInterval) }
         guard let stage else { return }
         let now = Date()
-        let gaze = Gaze.toward(cursorLocation(), from: window.frame)
+        let cursor = cursorLocation()
+        let gaze = Gaze.toward(cursor, from: window.frame)
         switch mode {
         case .routine:
+            if idleTime() >= Self.napAfter { return nap() }
             guard let gaze else {
                 ignoresCursorUntilItLeaves = false
                 return
@@ -384,8 +452,12 @@ public final class Performer {
             mode = .watching
             watchStarted = now
             cursorLastNear = now
+            petting.reset()
             look(gaze)
+        case .napping:
+            if idleTime() < Self.napAfter { wake() }
         case .watching:
+            if window.frame.contains(cursor), petting.track(x: cursor.x, at: now) { return pet() }
             if let gaze { cursorLastNear = now; look(gaze) }
             let bored = now.timeIntervalSince(watchStarted) > Self.longestWatch
             guard bored || now.timeIntervalSince(cursorLastNear) > Self.watchLinger else { return }
@@ -395,6 +467,30 @@ public final class Performer {
             loop = Task { [weak self] in await self?.carryOn(on: stage) }
         default:
             break
+        }
+    }
+
+    /// Asleep where he stands until you come back: his nap act on a loop, or just standing still.
+    private func nap() {
+        interrupt(as: .napping) { performer, _ in
+            let name = performer.character.acts(for: .nap).first
+            let napping = name.flatMap { performer.catalog.load($0) }
+            if napping == nil { performer.standStill() }
+            // Never returns on its own: only waking him (or an alert) ends the nap.
+            while !Task.isCancelled {
+                if let napping { await performer.window.play(napping) } else { try? await Task.sleep(for: .seconds(60)) }
+            }
+        }
+    }
+
+    private func wake() {
+        interrupt(as: .reacting) { performer, _ in await performer.play(.wake) }
+    }
+
+    /// Their pet act, or a celebration for someone who has none drawn yet.
+    private func pet() {
+        interrupt(as: .reacting) { performer, _ in
+            await performer.play(performer.character.acts(for: .pet).isEmpty ? .celebrate : .pet)
         }
     }
 
