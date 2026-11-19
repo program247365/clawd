@@ -254,6 +254,16 @@ a.download:hover, button.download:not(:disabled):hover { background: var(--clawd
   width: 0.5625rem; height: 0.5625rem; background: var(--clawd);
 }
 
+.memory { max-width: 34rem; margin: 0 0 1.5rem; }
+.memory svg { display: block; width: 100%; height: auto; }
+.memory path { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.memory-floor { stroke: var(--line); stroke-width: 1; }
+.memory-old { stroke: var(--ink-soft); stroke-dasharray: 1 6; }
+.memory-new { stroke: var(--clawd); }
+.memory-label { font: 600 13px var(--sans); fill: var(--ink-soft); }
+.memory-label-new { fill: var(--clawd-deep); }
+.memory figcaption { font-size: 0.9375rem; color: var(--ink-soft); margin-top: 0.5rem; text-wrap: pretty; }
+
 /* About window: the app's real About window */
 
 .window-about { width: min(100%, 21.25rem); }
