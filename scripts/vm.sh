@@ -3,7 +3,7 @@
 # Needs TART_HOME set if the VMs are not in tart's default place. State (ssh key, shared folder) is in .vm/.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../.." && pwd)"
+ROOT="$(cd "$HERE/.." && pwd)"
 STATE="$ROOT/.vm"; SHARE="$STATE/share"; KEY="$STATE/key"
 VM="${CLAWD_VM:-clawd-test}"; BASE="${CLAWD_VM_BASE:-tahoe-base}"
 TART="${TART:-$HOME/.local/bin/tart}"
@@ -39,9 +39,9 @@ push)
     # Builds the app and the probes on the host and copies them to ~/s in the guest.
     make -C "$ROOT/apps/clawd" app
     rm -rf "$SHARE/Clawd.app"; cp -R "$ROOT/apps/clawd/dist/Clawd.app" "$SHARE/"
-    for probe in lock watch; do swiftc -O "$HERE/probes/$probe.swift" -o "$SHARE/$probe"; done
-    (cd "$HERE/soak" && swift build -c release && cp "$(swift build -c release --show-bin-path)/soak" "$SHARE/soak")
-    cp "$HERE"/guest/*.sh "$SHARE/"
+    for probe in lock watch; do swiftc -O "$HERE/vm/probes/$probe.swift" -o "$SHARE/$probe"; done
+    (cd "$HERE/vm/soak" && swift build -c release && cp "$(swift build -c release --show-bin-path)/soak" "$SHARE/soak")
+    cp "$HERE"/vm/guest/*.sh "$SHARE/"
     retry 'pkill -x Clawd; rm -rf ~/s && mkdir ~/s && cp -R "/Volumes/My Shared Files/share/"* ~/s/ && ls ~/s'
     ;;
 stop) guest 'echo admin | sudo -S -p "" shutdown -h now' || "$TART" stop "$VM" ;;
