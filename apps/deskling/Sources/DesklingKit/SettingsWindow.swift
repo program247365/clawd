@@ -64,7 +64,7 @@ private struct SettingsView: View {
             Text("In Claude Code, run:")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
-            Text("/plugin install clawd --marketplace program247365/clawd")
+            Text("/plugin install deskling --marketplace program247365/deskling")
                 .font(.system(size: 11, design: .monospaced))
                 .textSelection(.enabled)
             HStack(alignment: .firstTextBaseline) {

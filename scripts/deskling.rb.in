@@ -2,7 +2,7 @@ cask "deskling" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://github.com/program247365/clawd/releases/download/v#{version}/Deskling-#{version}.dmg"
+  url "https://github.com/program247365/deskling/releases/download/v#{version}/Deskling-#{version}.dmg"
   name "Deskling"
   desc "Pixel characters that walk your desktop and react to your coding agents"
   homepage "https://deskling.kbr.sh/"

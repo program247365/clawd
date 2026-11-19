@@ -15,7 +15,7 @@ private struct AboutLink: Identifiable {
 
     static let all = [
         AboutLink(label: "Website", symbol: "globe", url: "https://deskling.kbr.sh"),
-        AboutLink(label: "Source", symbol: "chevron.left.forwardslash.chevron.right", url: "https://github.com/program247365/clawd"),
+        AboutLink(label: "Source", symbol: "chevron.left.forwardslash.chevron.right", url: "https://github.com/program247365/deskling"),
         AboutLink(label: "Kevin B. Ridgway", symbol: "person", url: "https://kbr.sh?source=deskling-app"),
     ]
 }

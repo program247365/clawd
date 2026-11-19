@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/program247365/clawd/releases/latest"><img src="https://img.shields.io/github/v/release/program247365/clawd?style=flat-square" alt="Latest release"></a>
+  <a href="https://github.com/program247365/deskling/releases/latest"><img src="https://img.shields.io/github/v/release/program247365/deskling?style=flat-square" alt="Latest release"></a>
   <a href="#install"><img src="https://img.shields.io/badge/platform-macOS%2014%2B-555?style=flat-square" alt="macOS 14 or later"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/program247365/clawd?style=flat-square" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/program247365/deskling?style=flat-square" alt="License"></a>
   <a href="https://github.com/program247365/homebrew-tap"><img src="https://img.shields.io/badge/Homebrew-program247365%2Ftap-FBB040?style=flat-square&logo=homebrew&logoColor=white" alt="Homebrew tap"></a>
 </p>
 
@@ -41,7 +41,7 @@ Meet the cast, and try them on the page, at **[deskling.kbr.sh](https://deskling
 brew install --cask program247365/tap/deskling
 ```
 
-Or download [Deskling.dmg](https://github.com/program247365/clawd/releases/latest/download/Deskling.dmg), open it, and drag Deskling to Applications.
+Or download [Deskling.dmg](https://github.com/program247365/deskling/releases/latest/download/Deskling.dmg), open it, and drag Deskling to Applications.
 
 Requires macOS 14 or later, on Apple silicon or Intel. The app is signed and notarized. Windows and Linux are planned.
 
@@ -80,7 +80,7 @@ Your Deskling can act out what your coding agents are doing (thinking, typing, e
 **Claude Code:** run this in a session:
 
 ```
-/plugin install deskling --marketplace program247365/clawd
+/plugin install deskling --marketplace program247365/deskling
 ```
 
 **Codex:** open Settings, choose **Connect Codex**, then trust the new hooks in Codex with `/hooks`. Connecting adds Deskling's hooks to `~/.codex/hooks.json` without touching any you already have, and keeps the previous file as `hooks.json.before-deskling`. **Disconnect Codex** removes only Deskling's hooks. Codex calls them over when it asks for approval (its `PermissionRequest` hook). Codex has no idle notification, so they only celebrate when a Codex turn ends.
