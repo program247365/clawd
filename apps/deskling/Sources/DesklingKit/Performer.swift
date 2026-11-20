@@ -55,12 +55,19 @@ public final class Performer {
         public var onClick: (() -> Void)?
         public var holdFor: TimeInterval?
         public var onTimeout: (() -> Void)?
+        /// You asked for this, as from the menu: he answers at once, without a hello wave, and even
+        /// while he waves for an agent, going back to that after.
+        public var asked: Bool
 
-        public init(lines: [String], onClick: (() -> Void)? = nil, holdFor: TimeInterval? = nil, onTimeout: (() -> Void)? = nil) {
+        public init(
+            lines: [String], onClick: (() -> Void)? = nil, holdFor: TimeInterval? = nil,
+            onTimeout: (() -> Void)? = nil, asked: Bool = false
+        ) {
             self.lines = lines
             self.onClick = onClick
             self.holdFor = holdFor
             self.onTimeout = onTimeout
+            self.asked = asked
         }
     }
 
@@ -95,6 +102,8 @@ public final class Performer {
     public var onAlertClick: (() -> Void)?
     /// What he has to tell you once no agent needs him; nil when nothing.
     public private(set) var announcement: Announcement?
+    /// Bumped by each `announce`, so a new one said mid-announcement starts from its first line.
+    private var announcementNumber = 0
     private let visibleFrame: () -> CGRect?
     private let alertFrame: () -> CGRect?
     private let cursorLocation: () -> CGPoint
@@ -272,11 +281,19 @@ public final class Performer {
     /// then it waits until that is over.
     public func announce(_ announcement: Announcement) {
         self.announcement = announcement
+        announcementNumber += 1
         switch mode {
-        case .routine, .watching, .reacting, .announcing: interrupt(as: .announcing) { _, _ in }
+        case .announcing: break // the one telling you picks it up, without waving hello again
+        case .routine, .watching, .reacting: interrupt(as: .announcing) { _, _ in }
+        case .alerting where announcement.asked:
+            // Told straight away; afterwards carrying on brings the agent's alert back.
+            interrupt(as: .announcing) { performer, _ in await performer.tellYou() }
         default: break // picked up when the routine would start
         }
     }
+
+    /// Whether he is meant to be on screen; false once hidden from the menu.
+    public var isShown: Bool { wantsVisible }
 
     /// Changes what he is saying without starting over, as for download progress. Takes no clicks.
     public func updateAnnouncement(_ text: String) {
@@ -393,13 +410,19 @@ public final class Performer {
     private func tellYou() async {
         mode = .announcing
         face(.right)
-        if let waving = catalog.load("waving") { await window.play(waving) }
+        if announcement?.asked != true, let waving = catalog.load("waving") { await window.play(waving) }
         if Task.isCancelled { return }
         standStill()
         var index = 0
         var said: String?
         var holdingSince: Date?
+        var number = announcementNumber
         while !Task.isCancelled, let current = announcement, !current.lines.isEmpty {
+            if number != announcementNumber {
+                number = announcementNumber
+                index = 0
+                holdingSince = nil
+            }
             let line = min(index, current.lines.count - 1)
             if current.lines[line] != said {
                 said = current.lines[line]
@@ -409,7 +432,11 @@ public final class Performer {
             takesClicks(isLast ? current.onClick : nil)
             if !isLast {
                 index += 1
-                try? await Task.sleep(for: .seconds(Self.announcementLineDuration))
+                // A new announcement cuts the line short rather than waiting it out.
+                let next = Date().addingTimeInterval(Self.announcementLineDuration)
+                while !Task.isCancelled, Date() < next, number == announcementNumber {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
                 continue
             }
             let since = holdingSince ?? Date()

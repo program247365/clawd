@@ -17,6 +17,8 @@ public final class Updater: NSObject {
     private var expectedBytes: UInt64 = 0
     private var receivedBytes: UInt64 = 0
     private var shownPercent = -1
+    /// The offer he is making, and Sparkle's reply to it, until you answer or it lapses.
+    private var offer: (version: String, announcement: Performer.Announcement, answer: (SPUUserUpdateChoice) -> Void)?
 
     /// Each line of an update's notes is said in turn, so they stay short; longer ones are cut off.
     static let longestLine = 40
@@ -64,8 +66,27 @@ public final class Updater: NSObject {
         return ["Psst! Deskling \(version) is out"] + notes + ["Click me to update"]
     }
 
+    /// Says `text` for a while. Hidden, he can't, so a check you asked for answers in a dialog instead.
     private func say(_ text: String, for seconds: TimeInterval) {
-        performer.announce(Performer.Announcement(lines: [text], holdFor: seconds))
+        if userInitiated, !performer.isShown { return Self.tell(text) }
+        performer.announce(Performer.Announcement(lines: [text], holdFor: seconds, asked: userInitiated))
+    }
+
+    private static func tell(_ text: String) {
+        let alert = NSAlert()
+        alert.messageText = text
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+    }
+
+    /// The offer as a dialog, for when he is hidden.
+    private static func offerInDialog(version: String, answer: (SPUUserUpdateChoice) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = "Deskling \(version) is out"
+        alert.addButton(withTitle: "Update")
+        alert.addButton(withTitle: "Later")
+        NSApp.activate(ignoringOtherApps: true)
+        answer(alert.runModal() == .alertFirstButtonReturn ? .install : .dismiss)
     }
 
     private func reset() {
@@ -81,29 +102,37 @@ extension Updater: SPUUserDriver {
     }
 
     public func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
-        performer.announce(Performer.Announcement(lines: ["Let me check…"]))
+        // Hidden, he stays quiet until there is an answer; the dialog brings it.
+        guard performer.isShown else { return }
+        performer.announce(Performer.Announcement(lines: ["Let me check…"], asked: true))
     }
 
     public func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
         // Sparkle's reply must be called exactly once, whether you click or the offer runs out.
         var answered = false
-        let answer: (SPUUserUpdateChoice) -> Void = { choice in
+        let answer: (SPUUserUpdateChoice) -> Void = { [weak self] choice in
             guard !answered else { return }
             answered = true
+            self?.offer = nil
+            if choice == .install { self?.installing = true }
             reply(choice)
         }
         let asked = userInitiated
         userInitiated = false
-        performer.announce(Performer.Announcement(
-            lines: Self.lines(version: appcastItem.displayVersionString, notes: appcastItem.itemDescription),
+        let version = appcastItem.displayVersionString
+        if asked, !performer.isShown { return Self.offerInDialog(version: version, answer: answer) }
+        let announcement = Performer.Announcement(
+            lines: Self.lines(version: version, notes: appcastItem.itemDescription),
             onClick: { [weak self] in
-                self?.installing = true
                 self?.performer.updateAnnouncement("Here we go!")
                 answer(.install)
             },
             // Asked for from the menu, the offer stands until you click; unasked, it lapses and comes back tomorrow.
             holdFor: asked ? nil : Self.offerFor,
-            onTimeout: { answer(.dismiss) }))
+            onTimeout: { answer(.dismiss) },
+            asked: asked)
+        offer = (version, announcement, answer)
+        performer.announce(announcement)
     }
 
     public func showUpdateReleaseNotes(with downloadData: SPUDownloadData) {}
@@ -168,11 +197,26 @@ extension Updater: SPUUserDriver {
         acknowledgement()
     }
 
-    public func showUpdateInFocus() {}
+    /// Checking from the menu while Sparkle is already busy lands here: say again where it has got to.
+    public func showUpdateInFocus() {
+        if let offer {
+            if !performer.isShown { return Self.offerInDialog(version: offer.version, answer: offer.answer) }
+            var again = offer.announcement
+            again.asked = true
+            again.holdFor = nil // you asked, so it stands until you click
+            performer.announce(again)
+        } else if var current = performer.announcement {
+            current.asked = true
+            performer.announce(current)
+        } else if performer.isShown {
+            performer.announce(Performer.Announcement(lines: ["Still on it…"], holdFor: 3, asked: true))
+        }
+    }
 
     public func dismissUpdateInstallation() {
         // Called when Sparkle is finished, whatever happened. A message with its own timer is left to finish.
         if performer.announcement?.holdFor == nil { performer.endAnnouncement() }
+        offer = nil
         reset()
     }
 }

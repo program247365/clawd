@@ -121,4 +121,62 @@ final class PerformerTests: XCTestCase {
         XCTAssertFalse(performer.isNapping)
         XCTAssertEqual(performer.alertText, "api needs you")
     }
+
+    private func announcer(bubble: SpeechBubble) -> Performer {
+        Performer(
+            character: Character.clawd(directory: stagedAnimations()), window: CharacterWindow(size: CharacterSize.medium.size),
+            bubble: bubble, settings: settings(), visibleFrame: { self.screen }, alertFrame: { self.screen },
+            cursorLocation: { CGPoint(x: -5000, y: -5000) }, idleTime: { 0 })
+    }
+
+    func testAnAnnouncementYouAskedForSpeaksStraightAway() async {
+        let bubble = SpeechBubble()
+        let performer = announcer(bubble: bubble)
+        defer { performer.stop() }
+        performer.start()
+        performer.announce(Performer.Announcement(lines: ["Let me check…"], asked: true))
+        // No hello wave first: the menu click should get an answer at once.
+        let spoke = await eventually(within: 0.6) { bubble.isVisible && bubble.text == "Let me check…" }
+        XCTAssertTrue(spoke)
+    }
+
+    func testANewAnnouncementTakesOverWithoutStartingAgain() async {
+        let bubble = SpeechBubble()
+        let performer = announcer(bubble: bubble)
+        defer { performer.stop() }
+        performer.start()
+        performer.announce(Performer.Announcement(lines: ["Let me check…"], asked: true))
+        _ = await eventually(within: 0.6) { bubble.text == "Let me check…" }
+        performer.announce(Performer.Announcement(lines: ["Psst! Deskling 9.9.9 is out", "Click me"], asked: true))
+        let replaced = await eventually(within: 0.6) { bubble.text == "Psst! Deskling 9.9.9 is out" }
+        XCTAssertTrue(replaced, "the offer replaces the line he is saying, without another hello wave")
+    }
+
+    func testAnAnnouncementYouAskedForGetsThroughAnAlertThenHeGoesBackToIt() async {
+        let bubble = SpeechBubble()
+        let performer = announcer(bubble: bubble)
+        defer { performer.stop() }
+        performer.start()
+        performer.alert("api needs you")
+        _ = await eventually { bubble.text == "api needs you" }
+
+        performer.announce(Performer.Announcement(lines: ["You're up to date!"], holdFor: 0.3, asked: true))
+        let told = await eventually { bubble.text == "You're up to date!" }
+        XCTAssertTrue(told, "a check you asked for answers even while he waves for an agent")
+        let back = await eventually { bubble.text == "api needs you" }
+        XCTAssertTrue(back, "then he goes back to waving for the agent")
+    }
+
+    func testAnAnnouncementNobodyAskedForWaitsForTheAlert() async {
+        let bubble = SpeechBubble()
+        let performer = announcer(bubble: bubble)
+        defer { performer.stop() }
+        performer.start()
+        performer.alert("api needs you")
+        _ = await eventually { bubble.text == "api needs you" }
+        performer.announce(Performer.Announcement(lines: ["Psst! Deskling 9.9.9 is out"]))
+        let interrupted = await eventually(within: 1) { bubble.text == "Psst! Deskling 9.9.9 is out" }
+        XCTAssertFalse(interrupted)
+    }
 }
+
