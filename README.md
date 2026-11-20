@@ -78,6 +78,18 @@ Updates come through [Sparkle](https://sparkle-project.org). The daily check fet
 
 macOS has no official way for an app to appear on the lock screen. Deskling gets there with private window-server functions, so the option is off by default, and a macOS update could break it. If the functions are missing, the option turns itself off. It is confirmed on macOS 27 and untested on earlier versions.
 
+### Why it isn't on the Mac App Store
+
+The lock screen visit alone rules it out: the App Store accepts only apps that use public APIs (guideline 2.5.1), and Deskling loads the private SkyLight framework to get there (`LockScreenVisitor.swift`). Dropping that feature wouldn't be enough, though:
+
+- **No sandbox.** App Store apps must run in the App Sandbox, and Deskling doesn't.
+- **Sparkle updates.** App Store apps can't update themselves.
+- **Focusing your terminal.** Clicking the character runs `osascript` to bring Terminal's tab forward, which a sandboxed app can't do without Apple Events exceptions that Apple grants case by case.
+- **Agent hooks and the `deskling` command.** Agents reach the app through system-wide notifications and report which terminal they're in. That would need checking, and likely redesigning, inside the sandbox, and the App Store can't install the hooks or the command for you.
+- **Clawd.** Clawd is Anthropic's character and this is an unofficial fan app, which the App Store rejects without the owner's permission (guideline 5.2).
+
+An App Store version would be a separate, smaller build without the lock screen, Sparkle, terminal focusing, or Clawd. For now Deskling ships as a signed and notarized download and through Homebrew.
+
 ### Claude Code and Codex
 
 Your Deskling can act out what your coding agents are doing (thinking, typing, editing, browsing), celebrate when one finishes, and come to the middle of the screen to wave when one is waiting on you. With more than one display they come to the one your cursor is on, follow you if you move, and go home once you answer. The wave lasts until you answer. Click them, or their speech bubble, to jump to the agent; if there's more than one, the one that has waited longest. In Warp and Terminal that's the agent's own tab (Terminal asks once for permission); in other terminals and editors, the app. Clicks only land on them while they wave; the rest of the time they pass straight through. Both are on by default in Settings and do nothing until an agent is connected.
