@@ -321,8 +321,27 @@ a.download:hover, button.download:not(:disabled):hover { background: var(--clawd
 .about-card p { margin-top: 0.5rem; font-size: 0.8125rem; color: var(--ink-soft); }
 .about-card .about-version { margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
 /* The cast in a row, each at 2px per art pixel. */
-.about-cast { list-style: none; display: flex; justify-content: center; gap: 0.125rem; margin-top: 0.875rem; }
-.about-cast img { display: block; width: 55px; height: auto; image-rendering: pixelated; }
+/* Neighbours overlap a little, only where their canvases are empty, so all five fit the card as in the app. */
+.about-cast {
+  list-style: none; display: flex; justify-content: center; gap: 0; margin: 0.375rem -0.25rem 0;
+  padding-top: 1.6875rem; position: relative;
+}
+.about-cast li { position: relative; width: 55px; height: 37px; }
+.about-cast li + li { margin-left: -2px; }
+.about-cast img { display: block; width: 55px; height: auto; margin: 0; image-rendering: pixelated; }
+.about-cast li.waving img { visibility: hidden; }
+.about-wave { position: absolute; inset: 0; }
+.about-wave svg { display: block; shape-rendering: crispEdges; }
+/* The stage light (about.js): a warm cone from above with a pool at the feet, moved slot to slot. */
+.about-light {
+  position: absolute; left: 0; bottom: 0; width: 55px; height: 64px; pointer-events: none;
+  opacity: 0; transition: transform 0.45s ease-in-out, opacity 0.3s;
+  background:
+    radial-gradient(closest-side, rgb(255 199 107 / 0.5), rgb(255 199 107 / 0)) center bottom / 44px 7px no-repeat,
+    linear-gradient(rgb(255 199 107 / 0), rgb(255 199 107 / 0.38)) center top / 100% calc(100% - 3px) no-repeat;
+  clip-path: polygon(40% 0, 60% 0, 92% calc(100% - 3px), 92% 100%, 8% 100%, 8% calc(100% - 3px));
+}
+.about-light.on { opacity: 1; }
 .about-links { list-style: none; margin-top: 1.375rem; background: var(--paper); border-radius: 12px; overflow: hidden; }
 .about-links li + li { border-top: 1px solid var(--line); }
 .about-links a {

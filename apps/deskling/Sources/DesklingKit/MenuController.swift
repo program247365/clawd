@@ -7,7 +7,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let performer: Performer
     private let settings: Settings
-    private let about = AboutWindowController()
+    private let about: AboutWindowController
     private let settingsWindow: SettingsWindowController
     private let roster: Roster
     private let agents: AgentListener
@@ -29,6 +29,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         self.picker = picker
         self.updater = updater
         settingsWindow = SettingsWindowController(updater: updater)
+        about = AboutWindowController(characters: roster.characters)
         super.init()
 
         showIcon(for: roster.character(id: settings.characterID))

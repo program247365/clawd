@@ -13,10 +13,13 @@ enum SelectFrames {
     static func ready(for character: Character) -> [CGImage] {
         let catalog = character.catalog
         if let ready = catalog.load("ready") { return frames(of: ready) }
-        guard let walking = catalog.load("walking"),
-              let still = FrameRenderer.render(walking.animation, frame: character.standingFrame, pixelSize: renderSize)
-        else { return [] }
+        guard let still = stand(for: character) else { return [] }
         return idle(from: still)
+    }
+
+    static func stand(for character: Character) -> CGImage? {
+        guard let walking = character.catalog.load("walking") else { return nil }
+        return FrameRenderer.render(walking.animation, frame: character.standingFrame, pixelSize: renderSize)
     }
 
     static func wave(for character: Character) -> [CGImage] {
