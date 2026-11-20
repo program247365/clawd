@@ -99,6 +99,20 @@
       ]
     },
     {
+      "id": "polarbear",
+      "name": "Floe",
+      "blurb": "Built for cold starts. Warm under the scarf.",
+      "walkCycle": [
+        0,
+        8
+      ],
+      "standingFrame": 8,
+      "ready": false,
+      "acts": [
+        "waving"
+      ]
+    },
+    {
       "id": "sol",
       "name": "Sol",
       "blurb": "Up early, out late, warm about it.",
