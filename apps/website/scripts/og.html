@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- The link-preview card (assets/og.png). Re-render with scripts/render-og.sh after editing. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Jersey 15"; src: url("../assets/fonts/jersey-15.woff2") format("woff2"); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1200px; height: 630px; overflow: hidden; }
+body {
+  background: #1d5a66 url("../assets/cast-pattern.svg");
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #141413;
+  position: relative;
+}
+.window {
+  position: absolute; left: 80px; top: 52px; width: 1040px;
+  background: #fff; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.2);
+}
+.titlebar {
+  height: 44px; background: #e9eeee; border-bottom: 1px solid #d5dddd;
+  display: flex; align-items: center; justify-content: center; position: relative;
+  font-size: 18px; font-weight: 600; color: #4a504f;
+}
+.lights { position: absolute; left: 18px; display: flex; gap: 9px; }
+.lights i { width: 14px; height: 14px; border-radius: 50%; background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; }
+.lights i:nth-child(3) { background: #28c840; }
+.body { padding: 34px 56px 38px; display: flex; align-items: center; gap: 40px; }
+.icon { width: 148px; height: 148px; image-rendering: pixelated; flex: none; }
+h1 { font-family: "Jersey 15", sans-serif; font-weight: 400; font-size: 88px; line-height: .95; }
+p { font-size: 27px; line-height: 1.35; color: #4a504f; margin-top: 14px; }
+.cast {
+  position: absolute; left: 0; right: 0; bottom: 10px;
+  display: flex; justify-content: center; gap: 4px;
+}
+.cast img { width: 220px; height: 148px; image-rendering: pixelated; }
+.url {
+  position: absolute; right: 28px; top: 20px;
+  color: #fff; font-size: 20px; font-weight: 600; opacity: .85;
+}
+</style>
+</head>
+<body>
+<span class="url">deskling.kbr.sh</span>
+<div class="window">
+  <div class="titlebar"><span class="lights"><i></i><i></i><i></i></span>Deskling</div>
+  <div class="body">
+    <img class="icon" src="../assets/app-icon.png" alt="">
+    <div>
+      <h1>Little friends for your desktop.</h1>
+      <p>A free Mac app. A pixel friend wanders your screen and comes to find you when your coding agent needs you.</p>
+    </div>
+  </div>
+</div>
+<div class="cast">
+  <img src="../assets/characters/luna/stand.png" alt="">
+  <img src="../assets/characters/minx/stand.png" alt="">
+  <img src="../assets/characters/clawd/stand.png" alt="">
+  <img src="../assets/characters/octo/stand.png" alt="">
+  <img src="../assets/characters/sol/stand.png" alt="">
+</div>
+</body>
+</html>
