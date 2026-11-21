@@ -51,12 +51,64 @@ sign "$APP"
 codesign --verify --strict --deep "$APP"
 
 echo "==> Packaging"
+# The window opens on Resources/dmg/background.png (made by scripts/dmg-background.py), with the app
+# on the left and the Applications link on the right, under the arrow. Finder saves that layout in
+# the volume's .DS_Store, so the image is built writable, arranged by scripting Finder, then compressed.
+# The first run asks to let your terminal control Finder.
+if [[ -e /Volumes/Deskling ]]; then
+    echo "A volume named Deskling is already mounted. Eject it first, so Finder arranges the new one." >&2
+    exit 1
+fi
 staging="$(mktemp -d)"
-trap 'rm -rf "$staging"' EXIT
+writable="$staging.rw.dmg"
+mount=""
+cleanup() {
+    if [[ -n "$mount" ]]; then hdiutil detach "$mount" -quiet -force 2>/dev/null || true; fi
+    rm -rf "$staging" "$writable"
+}
+trap cleanup EXIT
 cp -R "$APP" "$staging/"
 ln -s /Applications "$staging/Applications"
+mkdir "$staging/.background"
+tiffutil -cathidpicheck Resources/dmg/background.png Resources/dmg/background@2x.png \
+    -out "$staging/.background/background.tiff" >/dev/null
 rm -f "$DMG"
-hdiutil create -volname Deskling -srcfolder "$staging" -fs HFS+ -format UDZO -quiet "$DMG"
+hdiutil create -volname Deskling -srcfolder "$staging" -fs HFS+ -format UDRW -quiet "$writable"
+mount="$(hdiutil attach "$writable" -readwrite -noverify -noautoopen | awk -F'\t' '/\/Volumes\// {print $NF}')"
+# Window bounds are {left, top, right, bottom} on screen; 660 x 400 is the background's size in
+# points. Positions are icon centres, matching LAYOUT in scripts/dmg-background.py.
+osascript <<'APPLESCRIPT'
+tell application "Finder"
+    tell disk "Deskling"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set bounds of container window to {200, 120, 860, 520}
+        set viewOptions to icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 128
+        set text size of viewOptions to 13
+        set background picture of viewOptions to file ".background:background.tiff"
+        set position of item "Deskling.app" of container window to {170, 268}
+        set position of item "Applications" of container window to {490, 268}
+        close
+        open
+        update without registering applications
+        delay 2
+        close
+    end tell
+end tell
+APPLESCRIPT
+# Finder writes .DS_Store when it gets round to it; wait for it rather than ship a plain window.
+for _ in {1..20}; do [[ -f "$mount/.DS_Store" ]] && break; sleep 0.5; done
+[[ -f "$mount/.DS_Store" ]] || { echo "Finder did not save the window layout to the disk image." >&2; exit 1; }
+rm -rf "$mount/.fseventsd"
+sync
+hdiutil detach "$mount" -quiet
+mount=""
+hdiutil convert "$writable" -format UDZO -imagekey zlib-level=9 -quiet -o "$DMG"
+rm -f "$writable"
 sign "$DMG"
 
 if [[ -n "${SKIP_NOTARIZE:-}" ]]; then

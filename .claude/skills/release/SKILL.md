@@ -62,6 +62,9 @@ Takes a few minutes. It reruns `make check`, builds a universal app, signs it, u
 staples it, and leaves `apps/deskling/dist/Deskling.dmg` and `Deskling-X.Y.Z.dmg`. It ends with `spctl` printing
 `source=Notarized Developer ID` for the app and the DMG; anything else is a failure. It is safe to rerun.
 
+Packaging scripts Finder to lay out the DMG window (background, icon positions), so it needs a logged-in desktop:
+the first run asks to let the terminal control Finder, and it stops if a volume named Deskling is already mounted.
+
 ## 5. Release notes and bubble lines
 
 Write both to files in the scratchpad, never in the repo.
