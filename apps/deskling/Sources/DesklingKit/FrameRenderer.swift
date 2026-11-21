@@ -47,4 +47,26 @@ public enum FrameRenderer {
         }
         return nil
     }
+
+    /// How far the drawing reaches from the middle of `image` to its farther side, as a fraction of the
+    /// image's width: half the room the character takes up, whichever way they face. Nil for a blank image.
+    public static func drawnHalfWidth(of image: CGImage) -> CGFloat? {
+        let width = image.width, height = image.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        guard let context = CGContext(
+            data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        var left: Int?, right: Int?
+        for row in 0..<height {
+            for column in 0..<width where bytes[(row * width + column) * 4 + 3] > 127 {
+                left = min(left ?? column, column)
+                right = max(right ?? column, column)
+            }
+        }
+        guard let left, let right else { return nil }
+        let middle = CGFloat(width) / 2
+        return max(middle - CGFloat(left), CGFloat(right + 1) - middle) / CGFloat(width)
+    }
 }

@@ -21,6 +21,9 @@ public struct DesklingCommand: Equatable, Sendable {
     public let project: String
     /// Where the sender runs, so clicking an alert can take you there. Only sent with `alert`.
     public var origin: AgentEvent.Origin?
+    /// Who should bring an alert, by id or name, as in "nook": they come and stand beside the character who lives
+    /// on the desktop instead of that one coming. Only sent with `alert`.
+    public let character: String?
 
     /// The agent name commands are filed under, as in "agent/api" for an alert sent from a folder named api.
     public static let agent = "agent"
@@ -33,7 +36,10 @@ public struct DesklingCommand: Equatable, Sendable {
     public static let longestText = 60
 
     /// Nil when there is nothing to do: `say` with no text and no known role, `alert` with no text.
-    public init?(_ action: Action, text: String? = nil, role: String? = nil, project: String, origin: AgentEvent.Origin? = nil) {
+    public init?(
+        _ action: Action, text: String? = nil, role: String? = nil, project: String, origin: AgentEvent.Origin? = nil,
+        character: String? = nil
+    ) {
         let text = text.map(Self.tidy).flatMap { $0.isEmpty ? nil : $0 }
         let role = action == .say ? role?.lowercased() : nil
         switch action {
@@ -50,6 +56,8 @@ public struct DesklingCommand: Equatable, Sendable {
         self.role = role
         self.project = project.isEmpty ? "your agent" : project
         self.origin = action == .alert ? origin : nil
+        let character = character?.trimmingCharacters(in: .whitespaces).lowercased()
+        self.character = action == .alert && character?.isEmpty == false ? character : nil
     }
 
     /// One line, no runs of spaces, at most `longestText` characters.
@@ -68,6 +76,7 @@ public struct DesklingCommand: Equatable, Sendable {
         var info = ["action": action.rawValue, "project": project]
         info["text"] = text
         info["role"] = role
+        info["character"] = character
         if let origin { info.merge(origin.userInfo) { mine, _ in mine } }
         return info
     }
@@ -76,7 +85,8 @@ public struct DesklingCommand: Equatable, Sendable {
     public init?(userInfo: [AnyHashable: Any]?) {
         guard let info = userInfo, let action = (info["action"] as? String).flatMap(Action.init(rawValue:)) else { return nil }
         self.init(action, text: info["text"] as? String, role: info["role"] as? String,
-                  project: info["project"] as? String ?? "", origin: AgentEvent.Origin(userInfo: info))
+                  project: info["project"] as? String ?? "", origin: AgentEvent.Origin(userInfo: info),
+                  character: info["character"] as? String)
     }
 
     public func post() {

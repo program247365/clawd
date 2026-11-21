@@ -144,6 +144,12 @@ public struct Roster: Sendable {
         characters = [Character.clawd(directory: clawdDirectory)] + drawn
     }
 
+    /// The character whose id or name is `name`, ignoring case.
+    public func character(named name: String) -> Character? {
+        let name = name.lowercased()
+        return characters.first { $0.id.lowercased() == name || $0.name.lowercased() == name }
+    }
+
     /// The character with `id`, or Clawd.
     public func character(id: String?) -> Character {
         characters.first { $0.id == id } ?? characters[0]

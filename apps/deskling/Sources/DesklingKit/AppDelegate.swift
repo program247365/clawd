@@ -6,6 +6,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menu: MenuController?
     private var lockScreenVisitor: LockScreenVisitor?
     private var agents: AgentListener?
+    private var visitors: Visitors?
     private var picker: CharacterPickerWindowController?
     private var updater: Updater?
 
@@ -16,10 +17,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                             charactersDirectory: Self.resource("characters", override: "DESKLING_CHARACTERS"))
         let window = CharacterWindow(size: settings.size.size)
         let bubble = SpeechBubble()
+        let floor = Floor()
         let performer = Performer(
-            character: roster.character(id: settings.characterID), window: window, bubble: bubble, settings: settings)
+            character: roster.character(id: settings.characterID), window: window, bubble: bubble, settings: settings,
+            floor: floor)
         self.performer = performer
-        let agents = AgentListener(performer: performer, settings: settings)
+        let visitors = Visitors(roster: roster, settings: settings, floor: floor, host: performer)
+        self.visitors = visitors
+        let agents = AgentListener(performer: performer, settings: settings, visitors: visitors)
         self.agents = agents
         let picker = CharacterPickerWindowController(roster: roster, settings: settings) { [weak self] character in
             performer.setCharacter(character)
@@ -62,6 +67,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func screenChanged() {
         performer?.refresh()
+        visitors?.refresh()
     }
 
     /// A folder inside the app bundle, or the path in `override` when run with `swift run`.

@@ -6,13 +6,15 @@ import Foundation
 public final class AgentListener {
     private let performer: Performer
     private let settings: Settings
+    private let visitors: Visitors?
     private var desk = AgentDesk()
     private var observer: NSObjectProtocol?
     private var commandObserver: NSObjectProtocol?
 
-    public init(performer: Performer, settings: Settings) {
+    public init(performer: Performer, settings: Settings, visitors: Visitors? = nil) {
         self.performer = performer
         self.settings = settings
+        self.visitors = visitors
         performer.onAlertClick = { [weak self] in self?.goToWaiting() }
         observer = DistributedNotificationCenter.default().addObserver(
             forName: AgentEvent.notificationName, object: nil, queue: .main
@@ -30,6 +32,7 @@ public final class AgentListener {
 
     /// Something an agent asked him to say, act out, or come and tell you.
     public func handle(_ command: DesklingCommand, at now: Date = Date()) {
+        if visitors?.handle(command) == true { return }
         apply(desk.handle(command, at: now, speaks: settings.agentsCanSpeak, alerts: settings.alertsForAgents))
     }
 
@@ -61,6 +64,7 @@ public final class AgentListener {
     }
 
     public func dismissAll() {
+        visitors?.dismissAll()
         desk.dismissAll()
         performer.clearAlert()
     }

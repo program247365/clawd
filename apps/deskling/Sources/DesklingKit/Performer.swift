@@ -105,6 +105,10 @@ public final class Performer {
     /// Bumped by each `announce`, so a new one said mid-announcement starts from its first line.
     private var announcementNumber = 0
     private let visibleFrame: () -> CGRect?
+    /// Shared with any other character on screen, so they keep out of each other's way.
+    private let floor: Floor?
+    /// Half the width of his standing drawing, as a fraction of his window's width.
+    private var halfWidth: CGFloat?
     private let alertFrame: () -> CGRect?
     private let cursorLocation: () -> CGPoint
     private let idleTime: () -> TimeInterval
@@ -129,7 +133,8 @@ public final class Performer {
         visibleFrame: @escaping () -> CGRect? = { NSScreen.screens.first?.visibleFrame },
         alertFrame: @escaping () -> CGRect? = { MainActor.assumeIsolated { Performer.cursorScreenFrame() } },
         cursorLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
-        idleTime: @escaping () -> TimeInterval = Performer.secondsSinceInput
+        idleTime: @escaping () -> TimeInterval = Performer.secondsSinceInput,
+        floor: Floor? = nil
     ) {
         self.character = character
         catalog = character.catalog
@@ -140,6 +145,7 @@ public final class Performer {
         self.alertFrame = alertFrame
         self.cursorLocation = cursorLocation
         self.idleTime = idleTime
+        self.floor = floor
         queue = ActQueue(names: character.routineActs)
     }
 
@@ -172,6 +178,8 @@ public final class Performer {
 
     public var characterName: String { character.name }
 
+    public var characterID: String { character.id }
+
     /// Places him on the floor and begins the routine. Does nothing if already running.
     /// With `entrance`, he first drops in from the top of the screen, waving. That is for launch only.
     public func start(entrance: Bool = false) {
@@ -181,7 +189,7 @@ public final class Performer {
         if entrance {
             // Above the screen before the window appears, so he is never seen standing on the floor first.
             offset = stage.maxX / 2
-            window.origin = stage.entranceOrigin(x: offset)
+            moveTo(stage.entranceOrigin(x: offset))
             mode = .entrance
         }
         window.show()
@@ -195,6 +203,7 @@ public final class Performer {
         cursorTimer = nil
         mode = .idle
         window.hide()
+        floor?.remove(self)
     }
 
     /// Call when the screen layout or the size setting changes.
@@ -212,6 +221,7 @@ public final class Performer {
         walking = nil
         looking = nil
         headTop = nil
+        halfWidth = nil
         refresh()
     }
 
@@ -348,7 +358,7 @@ public final class Performer {
         offset = min(max(offset, 0), stage.maxX)
         onFloor = true
         window.resize(to: stage.size)
-        window.origin = stage.floorOrigin(x: offset)
+        moveTo(stage.floorOrigin(x: offset))
         window.facing = facing
         return stage
     }
@@ -364,7 +374,7 @@ public final class Performer {
 
     private func begin(on stage: Stage, entrance: Bool) async {
         guard let walking = loadWalking() else { return }
-        window.origin = entrance ? stage.entranceOrigin(x: offset) : stage.floorOrigin(x: offset)
+        moveTo(entrance ? stage.entranceOrigin(x: offset) : stage.floorOrigin(x: offset))
         if entrance {
             await dropIn(on: stage, thenStandAs: walking)
             if Task.isCancelled { return }
@@ -471,8 +481,7 @@ public final class Performer {
         while !Task.isCancelled {
             guard let name = queue.next(using: &rng) else {
                 // Someone with no acts drawn yet just strolls.
-                await walk(to: Choreography.nextWalkStop(from: offset, facing: facing, maxX: stage.maxX, using: &rng),
-                           on: stage, with: walking)
+                await walk(to: nextWalkStop(on: stage), on: stage, with: walking)
                 try? await Task.sleep(for: .seconds(3))
                 continue
             }
@@ -492,7 +501,9 @@ public final class Performer {
                 onFloor = false
                 await window.pop(visible: false)
                 if Task.isCancelled { return }
-                window.origin = stage.teleportOrigin(using: &rng)
+                var up = stage.teleportOrigin(using: &rng)
+                up.x = stage.visibleFrame.minX + freeSpot(near: up.x - stage.visibleFrame.minX, on: stage)
+                moveTo(up)
                 window.pose(act, frame: 0)
                 await window.pop(visible: true)
                 if Task.isCancelled { return }
@@ -500,14 +511,13 @@ public final class Performer {
                 if Task.isCancelled { return }
                 await window.pop(visible: false)
                 if Task.isCancelled { return }
-                offset = CGFloat.random(in: 0...stage.maxX, using: &rng)
-                window.origin = stage.floorOrigin(x: offset)
+                offset = freeSpot(near: CGFloat.random(in: 0...stage.maxX, using: &rng), on: stage)
+                moveTo(stage.floorOrigin(x: offset))
                 onFloor = true
                 window.pose(walking, frame: character.standingFrame)
                 await window.pop(visible: true)
             } else {
-                let target = Choreography.nextWalkStop(from: offset, facing: facing, maxX: stage.maxX, using: &rng)
-                await walk(to: target, on: stage, with: walking)
+                await walk(to: nextWalkStop(on: stage), on: stage, with: walking)
                 if Task.isCancelled { return }
                 await perform(act)
             }
@@ -521,8 +531,11 @@ public final class Performer {
         await ticker.run(on: window) { [weak self] elapsed in
             guard let self else { return true }
             let step = Choreography.step(x: offset, toward: target, width: stage.size.width, elapsed: elapsed)
+            // Someone arrived in his path: he stops short rather than walk in front of them.
+            let blocked = blocked(on: stage)
+            if Floor.isBlocked(step.x, by: blocked), !Floor.isBlocked(offset, by: blocked) { return true }
             offset = step.x
-            window.origin = stage.floorOrigin(x: offset)
+            moveTo(stage.floorOrigin(x: offset))
             return step.arrived
         }
         if !Task.isCancelled { standStill() }
@@ -541,7 +554,7 @@ public final class Performer {
         let waving = catalog.load("waving")
         var saidIt = false
         while !Task.isCancelled {
-            let moved = await comeToMiddle(of: alertFrame())
+            let moved = await comeToAlertSpot(of: alertFrame(), justArrived: !saidIt)
             if Task.isCancelled { return }
             if moved || !saidIt {
                 face(.right)
@@ -556,23 +569,96 @@ public final class Performer {
         }
     }
 
-    /// Pops over to the middle of the floor of `frame` (his own screen when nil), unless he is
-    /// already close. True if he moved.
-    private func comeToMiddle(of frame: CGRect?) async -> Bool {
+    /// Pops over to the middle of the floor of `frame` (his own screen when nil), or beside whoever is already
+    /// there. Once there he stays put, unless you move to another screen or someone ends up where he stands.
+    /// True if he moved.
+    private func comeToAlertSpot(of frame: CGRect?, justArrived: Bool) async -> Bool {
         guard let here = stage else { return false }
         let there = frame.map { Stage(visibleFrame: $0, size: here.size) } ?? here
-        let middle = there.maxX / 2
-        guard there != here || abs(offset - middle) > here.size.width else { return false }
+        let spot = alertSpot(on: there)
+        let crowded = Floor.isBlocked(offset, by: blocked(on: there))
+        guard there != here || crowded || (justArrived && abs(offset - spot) > here.size.width) else { return false }
         bubble.hide()
         await window.pop(visible: false)
         if Task.isCancelled { return false }
         stage = there
-        offset = middle
+        offset = spot
         onFloor = true
-        window.origin = there.floorOrigin(x: offset)
+        moveTo(there.floorOrigin(x: offset))
         standStill()
         await window.pop(visible: true)
         return true
+    }
+
+    // MARK: Sharing the floor
+
+    /// Moves his window, and tells the floor where he now stands.
+    private func moveTo(_ origin: CGPoint) {
+        window.origin = origin
+        guard let floor, let stage else { return }
+        let frame = window.frame
+        let half = (bodyHalfWidth() ?? 0.5) * frame.width
+        floor.set(self, screen: stage.visibleFrame, span: (frame.midX - half)...(frame.midX + half))
+    }
+
+    private func bodyHalfWidth() -> CGFloat? {
+        if halfWidth == nil, let walking = loadWalking(),
+           let image = FrameRenderer.render(walking.animation, frame: character.standingFrame, pixelSize: CGSize(width: 275, height: 185)) {
+            halfWidth = FrameRenderer.drawnHalfWidth(of: image)
+        }
+        return halfWidth
+    }
+
+    /// The positions along `stage`'s floor where he would stand in front of someone else.
+    private func blocked(on stage: Stage) -> [ClosedRange<CGFloat>] {
+        guard let floor else { return [] }
+        let others = floor.spans(except: self, on: stage.visibleFrame)
+        guard !others.isEmpty else { return [] }
+        let half = (bodyHalfWidth() ?? 0.5) * stage.size.width
+        // The offset that puts his middle at screen x is x - minX - width / 2.
+        let shift = stage.visibleFrame.minX + stage.size.width / 2
+        return others.map { ($0.lowerBound - Floor.gap - half - shift)...($0.upperBound + Floor.gap + half - shift) }
+    }
+
+    /// The nearest place to `x` on `stage`'s floor where he is in no one's way; `x` itself if there is nowhere.
+    private func freeSpot(near x: CGFloat, on stage: Stage) -> CGFloat {
+        Floor.nearestFree(to: x, in: 0...stage.maxX, blocked: blocked(on: stage)) ?? x
+    }
+
+    /// Where to stroll to next, staying between whoever stands either side of him.
+    private func nextWalkStop(on stage: Stage) -> CGFloat {
+        let room = Floor.room(around: offset, in: 0...stage.maxX, blocked: blocked(on: stage))
+        return room.lowerBound + Choreography.nextWalkStop(
+            from: offset - room.lowerBound, facing: facing, maxX: room.upperBound - room.lowerBound, using: &rng)
+    }
+
+    /// Where he waves from on `stage`: the middle, or as near it as he can stand without being in front of anyone.
+    private func alertSpot(on stage: Stage) -> CGFloat {
+        freeSpot(near: stage.maxX / 2, on: stage)
+    }
+
+    // MARK: Visiting
+
+    /// Drops in as a visitor at the middle of the screen, beside whoever is already there, and waves with `text` until `leave()`.
+    /// For a character called on by a command, not the one who lives on the desktop.
+    public func visit(saying text: String) {
+        alertText = text
+        wantsVisible = true
+        startCursorWatch()
+        guard loop == nil, let stage = placeOnFloor() else { return }
+        offset = alertSpot(on: stage)
+        moveTo(stage.entranceOrigin(x: offset))
+        mode = .entrance
+        window.show()
+        loop = Task { [weak self] in await self?.begin(on: stage, entrance: true) }
+    }
+
+    /// Pops out of sight and stays gone.
+    public func leave() async {
+        cancelLoop()
+        mode = .idle
+        await window.pop(visible: false)
+        stop()
     }
 
     /// Space between his head and the bubble's tail, as a fraction of his window's height.
@@ -699,7 +785,7 @@ public final class Performer {
         guard let waving = catalog.load("waving") else { return }
         let top = stage.entranceOrigin(x: offset)
         var falling: TimeInterval = 0
-        window.origin = top
+        moveTo(top)
         window.pose(walking, frame: character.standingFrame)
         let spotlight = SpotlightWindow(frame: stage.spotlightFrame(x: offset))
         self.spotlight = spotlight
@@ -709,7 +795,7 @@ public final class Performer {
             // Sum honored ticks rather than reading a clock, so a stalled frame cannot skip the fall.
             falling += min(max(elapsed, 0), Choreography.maxStep)
             let drop = Choreography.drop(from: top.y, to: stage.floorY, elapsed: falling)
-            window.origin = CGPoint(x: top.x, y: drop.y)
+            moveTo(CGPoint(x: top.x, y: drop.y))
             return drop.landed
         }
         if Task.isCancelled { return }

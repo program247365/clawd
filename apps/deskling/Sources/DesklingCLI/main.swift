@@ -10,7 +10,9 @@ let usage = """
     Usage:
       deskling say TEXT [--as ROLE]    say TEXT in a bubble, acting out ROLE if given
       deskling act ROLE [--say TEXT]   act out ROLE, saying TEXT if given
-      deskling alert TEXT              come and wave with TEXT until you answer or `deskling clear`
+      deskling alert TEXT [--character NAME]
+                                       come and wave with TEXT until you answer or `deskling clear`;
+                                       NAME, if given, comes instead and stands beside whoever is out
       deskling clear                   stop waving for the alert sent from this folder
       deskling mcp                     run as an MCP server over stdio, with the same four as tools
 
@@ -56,11 +58,13 @@ enum CommandError: Error, CustomStringConvertible {
 }
 
 /// Posts the command, or says why it could not.
-func send(_ action: DesklingCommand.Action, text: String? = nil, role: String? = nil, project: String?) -> Result<DesklingCommand, CommandError> {
+func send(
+    _ action: DesklingCommand.Action, text: String? = nil, role: String? = nil, project: String?, character: String? = nil
+) -> Result<DesklingCommand, CommandError> {
     if let role, !DesklingCommand.roles.contains(role.lowercased()) { return .failure(.unknownRole(role)) }
     guard let command = DesklingCommand(
         action, text: text, role: role, project: project ?? currentFolder,
-        origin: action == .alert ? .current() : nil)
+        origin: action == .alert ? .current() : nil, character: character)
     else { return .failure(.nothingToDo(action)) }
     guard isDesklingRunning else { return .failure(.notRunning) }
     command.post()
@@ -195,7 +199,8 @@ case "act":
     guard arguments.count == 1 else { fail(usage) }
     sent = send(.say, text: text, role: arguments[0], project: project)
 case "alert":
-    sent = send(.alert, text: arguments.joined(separator: " "), project: project)
+    let character = option("--character", in: &arguments)
+    sent = send(.alert, text: arguments.joined(separator: " "), project: project, character: character)
 case "clear":
     guard arguments.isEmpty else { fail(usage) }
     sent = send(.clear, project: project)

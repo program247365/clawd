@@ -30,6 +30,10 @@ final class CommandTests: XCTestCase {
             .alert, text: "review the plan", project: "api",
             origin: AgentEvent.Origin(processes: [42, 7], bundleID: "com.apple.Terminal", tty: "/dev/ttys003"))
         XCTAssertEqual(DesklingCommand(userInfo: alert?.userInfo), alert)
+        let visitor = DesklingCommand(.alert, text: "3 notes waiting", project: "littlebear", character: " Nook ")
+        XCTAssertEqual(visitor?.character, "nook")
+        XCTAssertEqual(DesklingCommand(userInfo: visitor?.userInfo), visitor)
+        XCTAssertNil(DesklingCommand(.say, text: "hi", project: "api", character: "nook")?.character, "only an alert brings a visitor")
         XCTAssertNil(DesklingCommand(userInfo: ["action": "say", "role": "nap"]))
         XCTAssertNil(DesklingCommand(userInfo: ["action": "explode"]))
     }
