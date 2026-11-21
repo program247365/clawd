@@ -84,6 +84,11 @@ enum MCPServer {
         "description": "A few words for the speech bubble. One line; cut to \(DesklingCommand.longestText) characters.",
     ]
 
+    static let characterSchema: [String: Any] = [
+        "type": "string",
+        "description": "Optional. A Deskling character to bring the alert, by name or id (for example nook): they drop in beside the user's own character instead of it coming. Leave out to use the user's own character.",
+    ]
+
     static func schema(_ properties: [String: Any], required: [String]) -> [String: Any] {
         ["type": "object", "properties": properties, "required": required]
     }
@@ -102,7 +107,7 @@ enum MCPServer {
         [
             "name": "alert",
             "description": "Have the Deskling come to the middle of the user's screen and wave with a message until they respond. Clicking it takes them to this agent's terminal. Only for when you are blocked on the user; call clear once they have answered, if your own hooks do not already tell Deskling.",
-            "inputSchema": schema(["text": textSchema], required: ["text"]),
+            "inputSchema": schema(["text": textSchema, "character": characterSchema], required: ["text"]),
         ],
         [
             "name": "clear",
@@ -151,7 +156,7 @@ enum MCPServer {
         let sent: Result<DesklingCommand, CommandError>
         switch name {
         case "say", "act": sent = send(.say, text: text, role: role, project: nil)
-        case "alert": sent = send(.alert, text: text, project: nil)
+        case "alert": sent = send(.alert, text: text, project: nil, character: arguments["character"] as? String)
         case "clear": sent = send(.clear, project: nil)
         default: return toolResult("Unknown tool \(name ?? "").", isError: true)
         }
@@ -163,7 +168,7 @@ enum MCPServer {
 
     static func summary(of command: DesklingCommand) -> String {
         switch (command.action, command.text, command.role) {
-        case let (.alert, text?, _): "Alerting the user: \"\(text)\"."
+        case let (.alert, text?, _): "Alerting the user\(command.character.map { " as \($0)" } ?? ""): \"\(text)\"."
         case (.clear, _, _): "Cleared."
         case let (_, text?, role?): "Sent: act out \(role), saying \"\(text)\"."
         case let (_, text?, nil): "Sent: \"\(text)\"."

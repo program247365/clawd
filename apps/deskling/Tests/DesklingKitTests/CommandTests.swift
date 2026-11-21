@@ -102,12 +102,13 @@ final class CommandTests: XCTestCase {
             #"{"jsonrpc":"2.0","id":5,"method":"resources/list"}"#,
             #"{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"alert","arguments":{"text":"need you"}}}"#,
             #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"clear","arguments":{}}}"#,
+            #"{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"alert","arguments":{"text":"notes waiting","character":"Nook"}}}"#,
         ]
         let result = try run(["mcp"], input: lines.joined(separator: "\n") + "\n", channel: "sh.kbr.deskling.tests.\(UUID().uuidString)")
         let replies = try result.output.split(separator: "\n").map {
             try XCTUnwrap(JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any])
         }
-        XCTAssertEqual(replies.map { $0["id"] as? Int }, [1, 2, 3, 4, 5, 6, 7], "the notification gets no reply")
+        XCTAssertEqual(replies.map { $0["id"] as? Int }, [1, 2, 3, 4, 5, 6, 7, 8], "the notification gets no reply")
 
         let initialized = try XCTUnwrap(replies[0]["result"] as? [String: Any])
         XCTAssertEqual(initialized["protocolVersion"] as? String, "2025-06-18")
@@ -118,6 +119,14 @@ final class CommandTests: XCTestCase {
         XCTAssertEqual((replies[4]["error"] as? [String: Any])?["code"] as? Int, -32601)
         XCTAssertEqual((replies[5]["result"] as? [String: Any])?["isError"] as? Bool, false)
         XCTAssertEqual((replies[6]["result"] as? [String: Any])?["isError"] as? Bool, false)
+
+        let alert = try XCTUnwrap(tools.first { $0["name"] as? String == "alert" })
+        let properties = try XCTUnwrap((alert["inputSchema"] as? [String: Any])?["properties"] as? [String: Any])
+        XCTAssertNotNil(properties["character"], "an agent can ask for a visitor")
+        let visited = try XCTUnwrap(replies[7]["result"] as? [String: Any])
+        XCTAssertEqual(visited["isError"] as? Bool, false)
+        let said = try XCTUnwrap((visited["content"] as? [[String: Any]])?.first?["text"] as? String)
+        XCTAssertEqual(said, "Alerting the user as nook: \"notes waiting\".")
     }
 }
 
