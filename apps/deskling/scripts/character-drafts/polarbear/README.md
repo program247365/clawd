@@ -1,6 +1,6 @@
 # Polar bear (archived draft)
 
-The script that first drew Floe, kept for reference. Floe now lives in `apps/deskling/characters/polarbear/`, and its `.aseprite` file there is the source of truth: edit that by hand, not this script. Nothing here writes into `characters/`, and its outputs (`out/`, `polarbear.aseprite`) are git-ignored.
+The script that first drew Nook, kept for reference. Nook now lives in `apps/deskling/characters/polarbear/`, and its `.aseprite` file there is the source of truth: edit that by hand, not this script. Nothing here writes into `characters/`, and its outputs (`out/`, `polarbear.aseprite`) are git-ignored.
 
 ## Regenerate
 
@@ -32,4 +32,4 @@ Outputs in `out/`:
 
 ## History
 
-Promoted to `characters/polarbear/` as Floe in 357f468: the draft `.aseprite` was copied in, then `make -C apps/deskling export-characters` and `site-characters` were run.
+Promoted to `characters/polarbear/` as Nook in 357f468: the draft `.aseprite` was copied in, then `make -C apps/deskling export-characters` and `site-characters` were run.
